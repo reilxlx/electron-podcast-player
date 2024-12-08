@@ -13,3 +13,5 @@
 # 忽略临时文件
 *.tmp
 *.log
+
+.DS_Store
