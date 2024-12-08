@@ -56,7 +56,46 @@ function updateFileList(audioIndex) {
     Object.entries(audioIndex).forEach(([hash, info]) => {
         const div = document.createElement('div');
         div.className = 'history-item';
-        div.textContent = info.file_path.split('/').pop(); 
+        div.textContent = info.file_path.split('/').pop();
+        
+        // 添加文件名称提示功能
+        let tooltipTimeout;
+        let tooltip;
+        
+        div.addEventListener('mouseenter', (e) => {
+            tooltipTimeout = setTimeout(() => {
+                // 创建提示框
+                tooltip = document.createElement('div');
+                tooltip.className = 'filename-tooltip';
+                tooltip.textContent = info.file_path.split('/').pop();
+                
+                // 计算位置
+                const rect = div.getBoundingClientRect();
+                tooltip.style.left = `${rect.right + 10}px`;
+                tooltip.style.top = `${rect.top}px`;
+                
+                // 添加到文档中
+                document.body.appendChild(tooltip);
+                
+                // 触发动画
+                requestAnimationFrame(() => {
+                    tooltip.classList.add('show');
+                });
+            }, 500);
+        });
+        
+        div.addEventListener('mouseleave', () => {
+            clearTimeout(tooltipTimeout);
+            if (tooltip) {
+                tooltip.classList.remove('show');
+                // 等待过渡动画完成后移除元素
+                setTimeout(() => {
+                    tooltip && tooltip.remove();
+                    tooltip = null;
+                }, 200);
+            }
+        });
+        
         div.addEventListener('click', () => loadHistoryFile(hash, info));
         fileList.appendChild(div);
     });

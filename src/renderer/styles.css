@@ -371,6 +371,7 @@ audio {
   text-overflow: ellipsis;
   margin-bottom: 8px;
   background-color: transparent;
+  position: relative;
 }
 
 .history-item:hover {
@@ -484,4 +485,29 @@ audio {
     color: #ff3b30;
     text-align: center;
     padding: 20px;
+}
+
+/* 文件名称提示框样式 */
+.filename-tooltip {
+    position: absolute;
+    background-color: rgba(60, 60, 67, 0.18);
+    color: var(--text-primary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 12px;
+    max-width: 300px;
+    word-wrap: break-word;
+    z-index: 1000;
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.filename-tooltip.show {
+    opacity: 1;
+    transform: translateY(0);
 }
