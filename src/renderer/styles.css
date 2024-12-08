@@ -280,13 +280,17 @@ body {
   background-color: var(--hover-color);
 }
 
-.subtitle-block.active {
+/* 为active状态下根据说话者区分颜色高亮 */
+.subtitle-block.active[data-speaker="A"] {
   background-color: #E9F1FF;
-  /* 用内嵌线条表示高亮，而不是额外缩小内部空间 */
-  box-shadow: inset 3px 0 0 var(--primary-color);
+  box-shadow: inset 3px 0 0 #007AFF;
 }
 
-/* 去掉原先的margin，从块本身padding控制间距 */
+.subtitle-block.active[data-speaker="B"] {
+  background-color: #E9F1FF;
+  box-shadow: inset 3px 0 0 #34C759;
+}
+
 .original-text {
   margin: 0;
 }
