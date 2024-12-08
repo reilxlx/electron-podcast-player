@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Podcast Player</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <div class="drag-area" id="drag-area">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <span>拖放音频文件到这里</span>
+                </div>
+            </div>
+            <div class="history-list" id="file-list"></div>
+        </div>
+
+        <div class="main-content">
+            <div class="player-section">
+                <div class="now-playing">
+                    <div class="audio-info">
+                        <span id="audio-file-label">未选择音频文件</span>
+                        <span id="time-label" class="time-label">00:00 / 00:00</span>
+                    </div>
+                    <audio id="audio-player" controls></audio>
+                </div>
+            </div>
+
+            <div class="translation-bar">
+                <div class="translation-options">
+                    <div class="translation-selector">
+                        <div class="option-pill" data-translator="google">Google翻译</div>
+                        <div class="option-pill" data-translator="silicon_cloud">SiliconCloud</div>
+                    </div>
+                    <div class="api-key-wrapper">
+                        <input type="password" id="api-key-input" placeholder="输入 API Key" class="api-key-input">
+                    </div>
+                </div>
+                <div class="actions">
+                    <label class="toggle">
+                        <input type="checkbox" id="show-translation" checked>
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">显示翻译</span>
+                    </label>
+                    <div class="translate-button" id="start-translate-btn">
+                        <span>翻译</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="subtitle-section">
+                <div id="subtitle-display" class="subtitle-display"></div>
+            </div>
+        </div>
+    </div>
+    <script src="renderer.js"></script>
+    <script src="ui.js"></script>
+</body>
+</html>
