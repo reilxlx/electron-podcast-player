@@ -7,6 +7,7 @@
   --border-color: #E5E5E5;
   --hover-color: #F5F5F7;
   --active-color: #E5E5E5;
+  --transition-speed: 0.2s;
 }
 
 body {
@@ -19,25 +20,26 @@ body {
 }
 
 .app-container {
-  display: flex;
+  position: relative;
+  width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
 
-/* 侧边栏样式 */
+/* 使用绝对定位的方式将sidebar和main-content进行布局 */
 .sidebar {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
   width: 260px;
   background-color: var(--sidebar-color);
   border-right: 1px solid var(--border-color);
-  display: flex;
-  flex-direction: column;
-  transition: width 0.3s ease, opacity 0.3s ease;
+  z-index: 10;
+  transition: transform var(--transition-speed) ease;
+  transform: translateX(0);
 }
 
 .sidebar.collapsed {
-  width: 0;
-  opacity: 0;
-  pointer-events: none;
+  transform: translateX(-260px);
 }
 
 .sidebar-header {
@@ -54,7 +56,7 @@ body {
   background-color: var(--background-color);
   border: 1px dashed var(--border-color);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all var(--transition-speed) ease;
 }
 
 .drag-area:hover {
@@ -66,23 +68,32 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  height: calc(100% - 56px); /* 56px = sidebar-header的高度 */
 }
 
-/* 主内容区域 */
+/* main-content绝对定位，与sidebar同级 */
 .main-content {
-  flex: 1;
+  position: absolute;
+  top: 0; bottom: 0; right: 0;
+  left: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  transition: margin-left var(--transition-speed) ease;
+  margin-left: 260px; /* 初始状态留出sidebar空间 */
 }
 
-/* 顶部栏（翻译栏） */
-.translation-bar {
+.sidebar.collapsed ~ .main-content {
+  margin-left: 0;
+}
+
+/* 顶部工具栏 */
+.top-bar {
   padding: 16px 24px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   gap: 16px;
+  background-color: var(--background-color);
 }
 
 .sidebar-toggle-button {
@@ -93,7 +104,7 @@ body {
   width: 34px;
   height: 34px;
   border-radius: 4px;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--transition-speed) ease;
 }
 
 .sidebar-toggle-button:hover {
@@ -117,7 +128,7 @@ body {
   border-radius: 16px;
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: background-color var(--transition-speed) ease;
   background-color: var(--hover-color);
 }
 
@@ -133,7 +144,7 @@ body {
   padding: 8px 12px;
   font-size: 13px;
   width: 200px;
-  transition: all 0.2s ease;
+  transition: background-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
 }
 
 .api-key-input:focus {
@@ -162,7 +173,7 @@ body {
   height: 20px;
   background-color: var(--hover-color);
   border-radius: 10px;
-  transition: all 0.2s ease;
+  transition: background-color var(--transition-speed) ease;
 }
 
 .toggle input:checked + .toggle-slider {
@@ -178,7 +189,7 @@ body {
   bottom: 2px;
   background-color: white;
   border-radius: 50%;
-  transition: all 0.2s ease;
+  transition: transform var(--transition-speed) ease;
 }
 
 .toggle input:checked + .toggle-slider:before {
@@ -196,7 +207,7 @@ body {
   color: white;
   font-size: 13px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: opacity var(--transition-speed) ease;
 }
 
 .translate-button:hover {
@@ -219,9 +230,10 @@ body {
   border-radius: 8px;
   background-color: var(--background-color);
   border: 1px solid var(--border-color);
+  position: relative;
 }
 
-/* 平滑滚动 */
+/* 滚动区域 */
 .subtitle-container {
   height: 100%;
   overflow-y: auto;
@@ -229,29 +241,27 @@ body {
   scroll-behavior: smooth;
 }
 
-/* 字幕块样式 */
+/* 字幕块样式，无阴影，统一间距与行距 */
 .subtitle-block {
-  padding: 8px 12px;
-  margin: 4px 0;
+  padding: 12px;
+  margin: 8px 0;
   border-radius: 8px;
-  background-color: rgba(255, 255, 255, 0.8);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  transition: background-color 0.2s ease;
+  background-color: #FFFFFF;
+  transition: background-color var(--transition-speed) ease;
   position: relative;
+  line-height: 1.5;
 }
 
-/* 不同说话者的颜色线条 */
+/* 不同说话者的颜色条，不改变文字布局 */
 .subtitle-block::before {
   content: "";
   position: absolute;
   left: -3px;
-  top: 0;
-  bottom: 0;
+  top: 0; bottom: 0;
   width: 3px;
   border-radius: 3px;
   opacity: 0;
-  transition: opacity 0.2s ease;
+  transition: opacity var(--transition-speed) ease;
 }
 
 .subtitle-block[data-speaker="A"]::before {
@@ -267,12 +277,32 @@ body {
 }
 
 .subtitle-block:hover {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: var(--hover-color);
 }
 
 .subtitle-block.active {
-  background-color: var(--hover-color);
-  border-left: 3px solid var(--primary-color);
+  background-color: #E9F1FF;
+  /* 用内嵌线条表示高亮，而不是额外缩小内部空间 */
+  box-shadow: inset 3px 0 0 var(--primary-color);
+}
+
+/* 去掉原先的margin，从块本身padding控制间距 */
+.original-text {
+  margin: 0;
+}
+
+.translation-text {
+  margin: 8px 0 0 0; 
+  overflow: hidden;
+  transition: max-height var(--transition-speed) ease, opacity var(--transition-speed) ease;
+  max-height: 100px;
+  opacity: 1;
+}
+
+.translation-text.hidden {
+  max-height: 0;
+  opacity: 0;
+  margin-top: 0;
 }
 
 /* 音频播放器样式容器 */
@@ -310,7 +340,7 @@ audio {
   padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: background-color var(--transition-speed) ease;
   font-size: 13px;
   color: var(--text-primary);
 }
@@ -324,45 +354,16 @@ audio {
   color: var(--text-primary);
 }
 
-/* 字幕文本样式 */
-.original-text {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 16px;
-  line-height: 1.5;
-  color: #333;
-  margin-bottom: 4px;
-}
-
-/* 翻译文本样式 */
-.translation-text {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 1.4;
-  color: #666;
-  margin-top: 4px;
-  transition: transform 0.2s ease, opacity 0.2s ease, height 0.2s ease;
-  transform-origin: top;
-}
-
-.translation-text.hidden {
-  opacity: 0;
-  transform: scaleY(0);
-  height: 0;
-  margin: 0;
-}
-
 /* 单词样式 */
 .word {
   display: inline-block;
   padding: 0 1px;
   border-radius: 3px;
-  transition: all 0.15s ease-in-out;
+  transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
 }
 
-/* 当前播放单词的高亮样式 */
 .word-active {
-  background-color: rgba(0, 122, 255, 0.15); /* macOS 蓝色 */
+  background-color: rgba(0, 122, 255, 0.15);
   color: rgb(0, 122, 255);
   font-weight: 500;
-  transform: scale(1.05);
 }
