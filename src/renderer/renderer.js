@@ -36,6 +36,17 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
 
     initDropZone();
+    
+    // -------- 新增：监听历史列表滚动事件，实现滚动时显示滚动条，停止后隐藏 --------
+    const historyList = document.querySelector('.history-list');
+    let scrollTimeout;
+    historyList.addEventListener('scroll', () => {
+        historyList.classList.add('scrolling');
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            historyList.classList.remove('scrolling');
+        }, 1000);
+    });
 });
 
 function updateFileList(audioIndex) {

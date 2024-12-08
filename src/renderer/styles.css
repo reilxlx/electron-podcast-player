@@ -80,8 +80,7 @@ body {
 /* main-content绝对定位，与sidebar同级 */
 .main-content {
   position: absolute;
-  top: 0; bottom: 0; right: 0;
-  left: 0;
+  top: 0; bottom: 0; right: 0; left: 0;
   display: flex;
   flex-direction: column;
   transition: margin-left var(--transition-speed) ease;
@@ -327,22 +326,36 @@ audio {
   border-radius: 8px;
 }
 
-/* 滚动条样式 */
-::-webkit-scrollbar {
-  width: 8px;
+/* 历史文件列表滚动条默认隐藏 */
+.history-list::-webkit-scrollbar {
+  width: 0;
+  opacity: 0;
+  transition: width 0.3s ease, opacity 0.3s ease;
 }
 
-::-webkit-scrollbar-track {
+/* 当添加.scrolling类时，显示滚动条 */
+.history-list.scrolling::-webkit-scrollbar {
+  width: 6px;
+  opacity: 1;
+}
+
+.history-list::-webkit-scrollbar-track {
   background: transparent;
 }
 
-::-webkit-scrollbar-thumb {
-  background: #9999A5;
-  border-radius: 4px;
+.history-list::-webkit-scrollbar-thumb {
+  background-color: rgba(153, 153, 165, 0.3);
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
-::-webkit-scrollbar-thumb:hover {
-  background: #666666;
+.history-list.scrolling::-webkit-scrollbar-thumb {
+  opacity: 1;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(153, 153, 165, 0.5);
 }
 
 /* 历史文件项样式 */
@@ -439,7 +452,7 @@ audio {
     -webkit-backdrop-filter: blur(4px);
 }
 
-/* 添加新的样式 */
+/* 转录状态 */
 .transcription-status {
     display: flex;
     flex-direction: column;
@@ -471,33 +484,4 @@ audio {
     color: #ff3b30;
     text-align: center;
     padding: 20px;
-}
-
-.history-list::-webkit-scrollbar {
-    width: 6px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.history-list:hover::-webkit-scrollbar {
-    opacity: 1;
-}
-
-.history-list::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-.history-list::-webkit-scrollbar-thumb {
-    background-color: rgba(153, 153, 165, 0.3);
-    border-radius: 3px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-}
-
-.history-list:hover::-webkit-scrollbar-thumb {
-    opacity: 1;
-}
-
-.history-list::-webkit-scrollbar-thumb:hover {
-    background-color: rgba(153, 153, 165, 0.5);
 }
