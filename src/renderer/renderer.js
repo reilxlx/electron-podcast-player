@@ -34,6 +34,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     sidebarToggleBtn.addEventListener('click', () => {
         sidebar.classList.toggle('collapsed');
     });
+
+    initDropZone();
 });
 
 function updateFileList(audioIndex) {
@@ -220,27 +222,72 @@ function updateWordHighlight(currentTime) {
     }
 }
 
-// 拖放处理
-const dragArea = document.getElementById('drag-area');
-dragArea.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dragArea.classList.add('drag-over');
-});
+// 初始化拖放区域
+function initDropZone() {
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
 
-dragArea.addEventListener('dragleave', () => {
-    dragArea.classList.remove('drag-over');
-});
+    // 点击选择文件
+    dropZone.addEventListener('click', () => {
+        fileInput.click();
+    });
 
-dragArea.addEventListener('drop', async (e) => {
-    e.preventDefault();
-    dragArea.classList.remove('drag-over');
-    
-    const files = e.dataTransfer.files;
-    if (files.length > 0) {
-        const filePath = files[0].path;
-        await window.electronAPI.selectAudio(filePath);
+    // 文件选择处理
+    fileInput.addEventListener('change', async (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            await handleAudioFile(file.path);
+        }
+    });
+
+    // 拖放处理
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('drag-over');
+    });
+
+    dropZone.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+
+        const file = e.dataTransfer.files[0];
+        if (file) {
+            await handleAudioFile(file.path);
+        }
+    });
+}
+
+// 处理音频文件
+async function handleAudioFile(filePath) {
+    try {
+        // 显示加载状态
+        showLoading('处理音频文件中...');
+
+        // 调用主进程处理文件
+        const result = await window.electronAPI.handleAudioFile(filePath);
+        
+        // 处理完成后，根据当前选择的翻译器进行翻译
+        const translator = document.querySelector('.option-pill.active').getAttribute('data-translator');
+        
+        if (translator === 'google') {
+            await translateWithGoogle(result.subtitles);
+        } else if (translator === 'silicon_cloud') {
+            await translateWithSiliconCloud(result.subtitles);
+        }
+
+        // 更新UI
+        updateFileList();
+        hideLoading();
+        
+    } catch (error) {
+        hideLoading();
+        showError('处理音频文件失败: ' + error.message);
     }
-});
+}
 
 ipcRenderer.on('update-subtitles', (event, data) => {
     const { subtitles, translations } = data;

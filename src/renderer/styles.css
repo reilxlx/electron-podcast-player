@@ -252,7 +252,7 @@ body {
   line-height: 1.5;
 }
 
-/* 不同说话者的颜色条，不改变文字布局 */
+/* 不同说���者的颜色条，不改变文字布局 */
 .subtitle-block::before {
   content: "";
   position: absolute;
@@ -321,7 +321,7 @@ audio {
   border-radius: 8px;
 }
 
-/* 滚动条样式 */
+/* 滚���条样式 */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -370,4 +370,60 @@ audio {
   background-color: rgba(0, 122, 255, 0.15);
   color: rgb(0, 122, 255);
   font-weight: 500;
+}
+
+/* 拖放区域样式 */
+.drop-zone {
+    border: 2px dashed #ccc;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.drop-zone:hover {
+    border-color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.05);
+}
+
+.drop-zone.drag-over {
+    border-color: #007AFF;
+    background-color: rgba(0, 122, 255, 0.1);
+}
+
+.drop-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.upload-icon {
+    color: #007AFF;
+    margin-bottom: 8px;
+}
+
+.drop-hint {
+    font-size: 14px;
+    color: #666;
+}
+
+/* 加载状态样式 */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }

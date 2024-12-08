@@ -10,11 +10,15 @@
     <div class="app-container">
         <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
-                <div class="drag-area" id="drag-area">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                    </svg>
-                    <span>拖放音频文件到这里</span>
+                <div id="drop-zone" class="drop-zone">
+                    <div class="drop-content">
+                        <svg class="upload-icon" width="24" height="24" viewBox="0 0 24 24">
+                            <path d="M12 4L12 16M12 4L7 9M12 4L17 9M5 20H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <span>添加音频</span>
+                        <span class="drop-hint">或将文件拖放到此处</span>
+                    </div>
+                    <input type="file" id="file-input" accept="audio/*" style="display: none;">
                 </div>
             </div>
             <div class="history-list" id="file-list"></div>

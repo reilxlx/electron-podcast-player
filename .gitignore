@@ -1,6 +1,8 @@
 # 忽略所有 JSON 文件
 *.json
 
+.py
+
 .wav
 .mp3
 .m4a
