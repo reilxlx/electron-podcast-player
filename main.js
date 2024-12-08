@@ -7,6 +7,7 @@ const {
 const { transcribeAudio } = require('./src/services/transcriptionService');
 const { translateTextBatch } = require('./src/services/translationService');
 const { parseTranscript, generateSubtitleTimes } = require('./src/services/subtitleParser');
+const { AssemblyAI } = require('assemblyai');
 
 let mainWindow = null;
 let audioIndex = {};
@@ -46,27 +47,34 @@ async function createWindow() {
     }
   });
 
-  ipcMain.handle('transcribe-audio', async (event, {filePath, apiKey, fileHash}) => {
+  ipcMain.handle('transcribe-audio', async (event, fileInfo) => {
     try {
-      let transcript = await transcribeAudio(filePath, apiKey);
+      // 从配置文件中读取ASR API Key
+      const config = await loadConfig();
+      if (!config.asrkey) {
+        throw new Error('未找到ASR API Key，请在配置文件中设置asrkey');
+      }
+
+      // 调用转录服务
+      const transcript = await transcribeAudio(fileInfo.filePath, config.asrkey);
+      
       // 解析转录结果
-      let subtitles = parseTranscript(transcript);
-      let translations = {}; // 初始无翻译
-      // 保存缓存
-      saveSubtitleCache(fileHash, {
+      const subtitles = parseTranscript(transcript);
+      const subtitleTimes = generateSubtitleTimes(subtitles);
+
+      // 保存字幕缓存
+      await saveSubtitleCache(fileInfo.hash, {
         subtitles,
-        translations,
-        filePath
+        subtitleTimes
       });
-      audioIndex[fileHash] = {
-        file_path: filePath,
-        subtitle_file: fileHash + '.json'
+
+      return {
+        subtitles,
+        subtitleTimes
       };
-      saveAudioIndex(audioIndex);
-      return { subtitles, translations };
-    } catch (err) {
-      console.error(err);
-      throw err;
+    } catch (error) {
+      console.error('音频转录失败:', error);
+      throw error;
     }
   });
 
