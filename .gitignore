@@ -14,4 +14,5 @@
 *.tmp
 *.log
 
+# 忽略 macOS 的 .DS_Store 文件
 .DS_Store
