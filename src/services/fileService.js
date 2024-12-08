@@ -23,15 +23,19 @@ function saveAudioIndex(index) {
   fs.writeFileSync(audioIndexFile, JSON.stringify(index, null, 2), 'utf-8');
 }
 
-function loadConfig() {
-  if (fs.existsSync(configFile)) {
-    return JSON.parse(fs.readFileSync(configFile, 'utf-8'));
-  }
-  return {
-    gemini_api_key: "",
-    silicon_cloud_api_key: ""
-  };
-}
+const loadConfig = () => {
+    try {
+        const configPath = path.join(__dirname, '../../podcast_data/config.json');
+        if (fs.existsSync(configPath)) {
+            const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            return config;
+        }
+        return {};
+    } catch (error) {
+        console.error('加载配置文件失败:', error);
+        return {};
+    }
+};
 
 function saveConfig(config) {
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2), 'utf-8');
@@ -47,18 +51,32 @@ async function getFileHash(filePath) {
   });
 }
 
-function saveSubtitleCache(fileHash, data) {
-  const filePath = path.join(subtitleCacheDir, fileHash + '.json');
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
-}
+const saveSubtitleCache = (fileHash, data) => {
+    try {
+        const subtitleDir = path.join(__dirname, '../../podcast_data/subtitles');
+        if (!fs.existsSync(subtitleDir)) {
+            fs.mkdirSync(subtitleDir, { recursive: true });
+        }
+        const subtitlePath = path.join(subtitleDir, `${fileHash}.json`);
+        fs.writeFileSync(subtitlePath, JSON.stringify(data, null, 2), 'utf8');
+    } catch (error) {
+        console.error('保存字幕缓存失败:', error);
+        throw error;
+    }
+};
 
-function loadSubtitleCache(fileHash) {
-  const filePath = path.join(subtitleCacheDir, fileHash + '.json');
-  if (!fs.existsSync(filePath)) {
-    return null;
-  }
-  return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-}
+const loadSubtitleCache = (fileHash) => {
+    try {
+        const subtitlePath = path.join(__dirname, '../../podcast_data/subtitles', `${fileHash}.json`);
+        if (fs.existsSync(subtitlePath)) {
+            return JSON.parse(fs.readFileSync(subtitlePath, 'utf8'));
+        }
+        return null;
+    } catch (error) {
+        console.error('加载字幕缓存失败:', error);
+        return null;
+    }
+};
 
 module.exports = {
   loadAudioIndex,

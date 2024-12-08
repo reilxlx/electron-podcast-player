@@ -49,32 +49,60 @@ async function createWindow() {
 
   ipcMain.handle('transcribe-audio', async (event, fileInfo) => {
     try {
-      // 从配置文件中读取ASR API Key
-      const config = await loadConfig();
-      if (!config.asrkey) {
-        throw new Error('未找到ASR API Key，请在配置文件中设置asrkey');
-      }
+        console.log('[主进程] 开始处理音频转录请求');
+        
+        // 从配置文件中读取ASR API Key
+        console.log('[主进程] 加载配置文件...');
+        const config = loadConfig();
+        if (!config.asr_api_key) {
+            console.error('[主进程] 未找到ASR API Key');
+            throw new Error('未找到ASR API Key，请在配置文件中设置asr_api_key');
+        }
 
-      // 调用转录服务
-      const transcript = await transcribeAudio(fileInfo.filePath, config.asrkey);
-      
-      // 解析转录结果
-      const subtitles = parseTranscript(transcript);
-      const subtitleTimes = generateSubtitleTimes(subtitles);
+        // 调用转录服务
+        console.log('[主进程] 调用转录服务...');
+        const transcript = await transcribeAudio(fileInfo.filePath, config.asr_api_key);
+        
+        // 解析转录结果
+        console.log('[主进程] 解析转录结果...');
+        const subtitles = [];
+        if (transcript.utterances) {
+            transcript.utterances.forEach((utterance, index) => {
+                subtitles.push({
+                    index: index,
+                    speaker: utterance.speaker,
+                    text: utterance.text,
+                    start_time: utterance.start,
+                    end_time: utterance.end,
+                    words: utterance.words || []
+                });
+            });
+        }
 
-      // 保存字幕缓存
-      await saveSubtitleCache(fileInfo.hash, {
-        subtitles,
-        subtitleTimes
-      });
+        // 保存字幕缓存
+        console.log('[主进程] 保存字幕缓存...');
+        const subtitleData = {
+            subtitles,
+            timestamp: Date.now()
+        };
+        await saveSubtitleCache(fileInfo.hash, subtitleData);
 
-      return {
-        subtitles,
-        subtitleTimes
-      };
+        // 更新音频索引
+        console.log('[主进程] 更新音频索引...');
+        audioIndex[fileInfo.hash] = {
+            file_path: fileInfo.filePath,
+            subtitle_file: `podcast_data/subtitles/${fileInfo.hash}.json`
+        };
+        saveAudioIndex(audioIndex);
+
+        console.log('[主进程] 音频处理完成');
+        return {
+            subtitles,
+            translations: {}
+        };
     } catch (error) {
-      console.error('音频转录失败:', error);
-      throw error;
+        console.error('[主进程] 音频转录失败:', error);
+        throw error;
     }
   });
 

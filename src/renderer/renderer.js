@@ -264,28 +264,51 @@ function initDropZone() {
 // 处理音频文件
 async function handleAudioFile(filePath) {
     try {
-        // 显示加载状态
-        showLoading('处理音频文件中...');
+        const subtitleDisplay = document.getElementById('subtitle-display');
+        
+        // 显示转录中的提示
+        subtitleDisplay.innerHTML = `
+            <div class="transcription-status">
+                <div class="loading-spinner"></div>
+                <p>正在转录音频，请稍候...</p>
+            </div>
+        `;
 
-        // 调用主进程处理文件
-        const result = await window.electronAPI.handleAudioFile(filePath);
+        // 获取文件hash
+        const result = await window.electronAPI.selectAudio(filePath);
         
-        // 处理完成后，根据当前选择的翻译器进行翻译
-        const translator = document.querySelector('.option-pill.active').getAttribute('data-translator');
-        
-        if (translator === 'google') {
-            await translateWithGoogle(result.subtitles);
-        } else if (translator === 'silicon_cloud') {
-            await translateWithSiliconCloud(result.subtitles);
+        if (result.cachedData) {
+            // 如果有缓存，直接使用缓存数据
+            subtitles = result.cachedData.subtitles;
+            translations = result.cachedData.translations || {};
+            displaySubtitles(subtitles, translations, showTranslation);
+            
+        } else {
+            // 无缓存，需要进行转录
+            const transcribeResult = await window.electronAPI.transcribeAudio({
+                filePath: filePath,
+                hash: result.fileHash
+            });
+            
+            subtitles = transcribeResult.subtitles;
+            displaySubtitles(subtitles, {}, showTranslation);
         }
 
-        // 更新UI
-        updateFileList();
-        hideLoading();
+        // 更新音频播放器源
+        audioPlayer.src = filePath;
         
+        // 更新文件列表
+        const audioIndex = await window.electronAPI.getAudioIndex();
+        updateFileList(audioIndex);
+
     } catch (error) {
-        hideLoading();
-        showError('处理音频文件失败: ' + error.message);
+        // 显示错误信息
+        subtitleDisplay.innerHTML = `
+            <div class="error-message">
+                <p>转录失败: ${error.message}</p>
+            </div>
+        `;
+        console.error('处理音频文件失败:', error);
     }
 }
 

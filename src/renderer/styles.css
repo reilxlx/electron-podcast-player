@@ -252,7 +252,7 @@ body {
   line-height: 1.5;
 }
 
-/* 不同说���者的颜色条，不改变文字布局 */
+/* 不同说话者的颜色条，不改变文字布局 */
 .subtitle-block::before {
   content: "";
   position: absolute;
@@ -321,7 +321,7 @@ audio {
   border-radius: 8px;
 }
 
-/* 滚���条样式 */
+/* 滚动条样式 */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -426,4 +426,38 @@ audio {
     z-index: 1000;
     backdrop-filter: blur(4px);
     -webkit-backdrop-filter: blur(4px);
+}
+
+/* 添加新的样式 */
+.transcription-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    gap: 16px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #f3f3f3;
+    border-top: 4px solid #007AFF;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.error-message {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    color: #ff3b30;
+    text-align: center;
+    padding: 20px;
 }
