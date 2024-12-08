@@ -29,12 +29,33 @@ async function transcribeAudio(filePath, apiKey) {
         }
 
         console.log('[ASR] 转录成功，处理转录结果...');
+        
+        // 重构转录结果为所需格式
+        const subtitles = [];
+        if (transcript.utterances) {
+            transcript.utterances.forEach((utterance, index) => {
+                // 确保words数组格式正确
+                const words = utterance.words ? utterance.words.map(word => ({
+                    text: word.text,
+                    start: Math.round(word.start),
+                    end: Math.round(word.end)
+                })) : [];
+
+                // 构建字幕对象
+                subtitles.push({
+                    speaker: utterance.speaker,
+                    start_time: Math.round(utterance.start),
+                    end_time: Math.round(utterance.end),
+                    content: utterance.text,
+                    words: words
+                });
+            });
+        }
+
+        // 构建完整的返回对象
         const result = {
-            text: transcript.text,
-            words: transcript.words,
-            utterances: transcript.utterances,
-            speakers: transcript.speakers,
-            status: transcript.status
+            subtitles: subtitles,
+            file_path: filePath
         };
 
         console.log('[ASR] 转录完成');

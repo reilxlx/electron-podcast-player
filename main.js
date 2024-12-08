@@ -79,16 +79,19 @@ async function createWindow() {
             });
         }
 
+        // 构建完整的字幕数据对象
+        const subtitleData = {
+            subtitles: transcript.subtitles, // 使用转录服务返回的格式化字幕
+            file_path: fileInfo.filePath     // 添加文件路径
+        };
+
         // 保存字幕缓存
         console.log('[主进程] 保存字幕缓存...');
-        const subtitleData = {
-            subtitles,
-            timestamp: Date.now()
-        };
         await saveSubtitleCache(fileInfo.hash, subtitleData);
 
         // 更新音频索引
         console.log('[主进程] 更新音频索引...');
+        const audioIndex = loadAudioIndex();
         audioIndex[fileInfo.hash] = {
             file_path: fileInfo.filePath,
             subtitle_file: `podcast_data/subtitles/${fileInfo.hash}.json`
@@ -96,10 +99,7 @@ async function createWindow() {
         saveAudioIndex(audioIndex);
 
         console.log('[主进程] 音频处理完成');
-        return {
-            subtitles,
-            translations: {}
-        };
+        return subtitleData;
     } catch (error) {
         console.error('[主进程] 音频转录失败:', error);
         throw error;
