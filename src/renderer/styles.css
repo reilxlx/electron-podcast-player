@@ -21,6 +21,7 @@ body {
 .app-container {
   display: flex;
   height: 100vh;
+  overflow: hidden;
 }
 
 /* 侧边栏样式 */
@@ -30,6 +31,13 @@ body {
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
+  transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .sidebar-header {
@@ -68,39 +76,35 @@ body {
   overflow: hidden;
 }
 
-/* 播放器部分 */
-.player-section {
-  padding: 24px;
-  border-bottom: 1px solid var(--border-color);
-}
-
-.now-playing {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.audio-info {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-/* 翻译选项栏 */
+/* 顶部栏（翻译栏） */
 .translation-bar {
   padding: 16px 24px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  gap: 16px;
+}
+
+.sidebar-toggle-button {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+
+.sidebar-toggle-button:hover {
+  background-color: var(--hover-color);
 }
 
 .translation-options {
   display: flex;
   align-items: center;
   gap: 16px;
+  flex: 1;
 }
 
 .translation-selector {
@@ -234,9 +238,10 @@ body {
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   transition: background-color 0.2s ease;
+  position: relative;
 }
 
-/* 添加说话者标识样式 */
+/* 不同说话者的颜色线条 */
 .subtitle-block::before {
   content: "";
   position: absolute;
@@ -249,7 +254,6 @@ body {
   transition: opacity 0.2s ease;
 }
 
-/* 不同说话者的颜色 */
 .subtitle-block[data-speaker="A"]::before {
   background-color: #007AFF;
 }
@@ -258,7 +262,6 @@ body {
   background-color: #34C759;
 }
 
-/* 当前激活的字幕块样式 */
 .subtitle-block.active::before {
   opacity: 1;
 }
@@ -272,7 +275,12 @@ body {
   border-left: 3px solid var(--primary-color);
 }
 
-/* 音频播放器样式 */
+/* 音频播放器样式容器 */
+.audio-player-container {
+  padding: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
 audio {
   width: 100%;
   height: 36px;
@@ -332,6 +340,8 @@ audio {
   line-height: 1.4;
   color: #666;
   margin-top: 4px;
+  transition: transform 0.2s ease, opacity 0.2s ease, height 0.2s ease;
+  transform-origin: top;
 }
 
 .translation-text.hidden {

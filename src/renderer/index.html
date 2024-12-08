@@ -8,7 +8,7 @@
 </head>
 <body>
     <div class="app-container">
-        <div class="sidebar">
+        <div class="sidebar" id="sidebar">
             <div class="sidebar-header">
                 <div class="drag-area" id="drag-area">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -21,17 +21,15 @@
         </div>
 
         <div class="main-content">
-            <div class="player-section">
-                <div class="now-playing">
-                    <div class="audio-info">
-                        <span id="audio-file-label">未选择音频文件</span>
-                        <span id="time-label" class="time-label">00:00 / 00:00</span>
-                    </div>
-                    <audio id="audio-player" controls></audio>
-                </div>
-            </div>
-
+            <!-- 顶部工具栏，包含侧边栏折叠按钮、翻译器选择、翻译开关 -->
             <div class="translation-bar">
+                <div class="sidebar-toggle-button" id="sidebar-toggle-button">
+                    <!-- 类似于GPT Mac客户端的三条线按钮 -->
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <path d="M2 5H18M2 10H18M2 15H18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+
                 <div class="translation-options">
                     <div class="translation-selector">
                         <div class="option-pill" data-translator="google">Google翻译</div>
@@ -55,6 +53,11 @@
 
             <div class="subtitle-section">
                 <div id="subtitle-display" class="subtitle-display"></div>
+            </div>
+
+            <!-- 将audio播放器放置在底部（如有需要） -->
+            <div class="audio-player-container">
+                <audio id="audio-player" controls></audio>
             </div>
         </div>
     </div>
