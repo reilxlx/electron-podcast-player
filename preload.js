@@ -1,5 +1,13 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
+// 添加翻译进度事件监听器
+let translationProgressCallback = null;
+ipcRenderer.on('translation-progress', (event, data) => {
+    if (translationProgressCallback) {
+        translationProgressCallback(data);
+    }
+});
+
 contextBridge.exposeInMainWorld('electronAPI', {
   getAudioIndex: () => ipcRenderer.invoke('get-audio-index'),
   getConfig: () => ipcRenderer.invoke('get-config'),
@@ -13,4 +21,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSiliconCloudApiKey: () => ipcRenderer.invoke('get-silicon-cloud-api-key'),
   deleteHistoryFile: (hash) => ipcRenderer.invoke('delete-history-file', hash),
   showConfirmDialog: (options) => ipcRenderer.invoke('show-confirm-dialog', options),
+  
+  // 修改进度事件监听器的注册方式
+  onTranslationProgress: (callback) => {
+    translationProgressCallback = callback;
+    return () => {
+      translationProgressCallback = null;
+    };
+  }
 });

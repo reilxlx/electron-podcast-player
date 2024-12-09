@@ -120,30 +120,53 @@ async function siliconCloudTranslate(text, api_key, base_url = 'https://api.sili
  * @param {Array<{index:number,text:string}>} texts 要翻译的文本数组
  * @param {string} translator 翻译器类型 'google' | 'silicon_cloud'
  * @param {string|null} apiKey API密钥（对Google翻译可选）
+ * @param {Function} onProgress 进度回调函数，参数为(index, translatedText)
  */
-async function translateTextBatch(texts, translator, apiKey) {
-  console.log(`[翻译批量] 开始批量翻译 ${texts.length} 条文本，使用翻译器: ${translator}`);
+async function translateTextBatch(texts, translator, apiKey, onProgress) {
+  console.log(`[翻译服务] 开始批量翻译 ${texts.length} 条文本，使用翻译器: ${translator}`);
   let result = {};
-  for (let item of texts) {
-    console.log(`[翻译批量] 处理第 ${item.index + 1}/${texts.length} 条文本`);
+  
+  for (let i = 0; i < texts.length; i++) {
+    const item = texts[i];
+    console.log(`[翻译服务] 处理第 ${i + 1}/${texts.length} 条文本`);
     let translation = "";
-    if (translator === 'google') {
-      translation = await googleTranslate(item.text) || "";
-    } else if (translator === 'silicon_cloud') {
-      try {
-        console.log('[翻译批量] 使用SiliconCloud翻译...');
+    
+    try {
+      if (translator === 'google') {
+        translation = await googleTranslate(item.text) || "";
+      } else if (translator === 'silicon_cloud') {
+        console.log('[翻译服务] 使用SiliconCloud翻译...');
         translation = await siliconCloudTranslate(item.text, apiKey);
-      } catch (err) {
-        console.error(`[翻译批量] SiliconCloud翻译失败:`, err);
-        translation = "";
+      } else {
+        console.log('[翻译服务] 使用默认Google翻译...');
+        translation = await googleTranslate(item.text) || "";
       }
-    } else {
-      console.log('[翻译批量] 使用默认Google翻译...');
-      translation = await googleTranslate(item.text) || "";
+      
+      // 保存翻译结果
+      result[item.index] = { text: translation, translator };
+      
+      // 调用进度回调
+      if (typeof onProgress === 'function') {
+        onProgress(i, translation);
+      }
+      
+    } catch (err) {
+      console.error(`[翻译服务] 翻译失败:`, err);
+      result[item.index] = { text: "", translator };
+      
+      // 即使失败也调用进度回调
+      if (typeof onProgress === 'function') {
+        onProgress(i, "");
+      }
     }
-    result[item.index] = { text: translation, translator };
+    
+    // 添加延迟以避免请求过快
+    if (i < texts.length - 1) {  // 最后一个不需要延迟
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
   }
-  console.log('[翻译批量] 批量翻译完成');
+  
+  console.log('[翻译服务] 批量翻译完成');
   return result;
 }
 

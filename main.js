@@ -108,14 +108,37 @@ async function createWindow() {
   });
 
   ipcMain.handle('translate-subtitles', async (event, {fileHash, subtitles, translator, apiKey}) => {
-    // 批量翻译
-    let texts = subtitles.map((s, i) => ({index: i, text: s.text}));
-    let result = await translateTextBatch(texts, translator, apiKey);
-    // 加载缓存
-    let cachedData = loadSubtitleCache(fileHash);
-    cachedData.translations = result;
-    saveSubtitleCache(fileHash, cachedData);
-    return result;
+    try {
+      console.log('[主进程] 开始翻译，总数:', subtitles.length);
+      
+      // 批量翻译
+      const texts = subtitles.map((s, i) => ({index: i, text: s.text}));
+      const result = await translateTextBatch(texts, translator, apiKey, (index, text) => {
+        console.log(`[主进程] 翻译进度: ${index + 1}/${texts.length}`);
+        // 发送进度更新到渲染进程
+        try {
+          event.sender.send('translation-progress', {
+            current: index + 1,
+            total: texts.length,
+            text: text
+          });
+        } catch (err) {
+          console.error('[主进程] 发送进度更新失败:', err);
+        }
+      });
+      
+      console.log('[主进程] 翻译完成，保存结果');
+      
+      // 加载缓存
+      const cachedData = loadSubtitleCache(fileHash);
+      cachedData.translations = result;
+      saveSubtitleCache(fileHash, cachedData);
+      
+      return result;
+    } catch (error) {
+      console.error('[主进程] 翻译失败:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('load-cached-data', (event, fileHash) => {

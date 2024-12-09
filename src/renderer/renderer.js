@@ -7,6 +7,21 @@ let currentSubtitleIndex = -1;
 let apiKeyInputTimeout = null;
 let currentWordIndex = -1;
 let wordPositions = [];
+let cachedData = null;
+let translationInProgress = false;
+
+// 在文件顶部添加IPC监听器
+window.electronAPI.onTranslationProgress((data) => {
+    console.log('[渲染进程] 收到进度更新:', data);
+    if (!translationInProgress) return;
+    
+    const { current, total, text } = data;
+    updateTranslationProgress(
+        current,
+        total,
+        text ? `当前翻译：${text.substring(0, 30)}${text.length > 30 ? '...' : ''}` : ''
+    );
+});
 
 window.addEventListener('DOMContentLoaded', async () => {
     audioPlayer = document.getElementById('audio-player');
@@ -161,22 +176,36 @@ async function showContextMenu(event, hash) {
                     throw new Error('没有找到可翻译的文本');
                 }
                 
-                console.log('[翻译] 准备翻译的文本:', textsToTranslate);
+                console.log('[渲染进程] 开始翻译，总数:', textsToTranslate.length);
+                translationInProgress = true;
                 
-                // 调用翻译API
-                const translationResult = await window.electronAPI.translateSubtitles({
-                    fileHash: hash,
-                    subtitles: textsToTranslate,
-                    translator: 'google',
-                    apiKey: null  // Google翻译不需要API key
-                });
+                // 创建进度显示
+                createTranslationProgress();
+                
+                try {
+                    // 调用翻译API
+                    const translationResult = await window.electronAPI.translateSubtitles({
+                        fileHash: hash,
+                        subtitles: textsToTranslate,
+                        translator: 'google',
+                        apiKey: null
+                    });
+                    
+                    console.log('[渲染进程] 翻译完成');
+                    
+                    // 更新UI显示
+                    const translationToggle = document.getElementById('show-translation');
+                    translationToggle.checked = true;
+                    showTranslation();
+                } catch (error) {
+                    console.error('[渲染进程] 翻译失败:', error);
+                    throw error;
+                } finally {
+                    translationInProgress = false;
+                    clearTranslationProgress();
+                }
                 
                 // 更新UI显示
-                const translationToggle = document.getElementById('show-translation');
-                translationToggle.checked = true;
-                showTranslation = true;
-                
-                // 重新加载字幕显示
                 const updatedData = await window.electronAPI.loadCachedData(hash);
                 subtitles = updatedData.subtitles;
                 translations = updatedData.translations || {};
@@ -674,3 +703,88 @@ async function setTranslatorFromHistory(translator) {
     
     await updateApiKeyInput(translator);
 }
+
+// 创建翻译进度显示区域
+function createTranslationProgress() {
+    const subtitleDisplay = document.getElementById('subtitle-display');
+    if (!subtitleDisplay) return;
+    
+    const progressElement = document.createElement('div');
+    progressElement.className = 'translation-progress';
+    progressElement.innerHTML = `
+        <div class="translation-progress-header">
+            <div class="translation-progress-icon"></div>
+            <div class="translation-progress-title">正在翻译字幕...</div>
+        </div>
+        
+        <div class="translation-progress-stats">
+            <div class="translation-progress-count">已完成：0/0</div>
+            <div class="translation-progress-percentage">0%</div>
+        </div>
+        
+        <div class="translation-progress-bar">
+            <div class="translation-progress-fill" style="width: 0%"></div>
+        </div>
+        
+        <div class="translation-progress-detail"></div>
+    `;
+    
+    subtitleDisplay.innerHTML = '';
+    subtitleDisplay.appendChild(progressElement);
+}
+
+// 更新翻译进度
+function updateTranslationProgress(current, total, detail = '') {
+    const progressElement = document.querySelector('.translation-progress');
+    if (!progressElement) return;
+    
+    const percent = Math.round((current / total) * 100);
+    
+    // 更新计数
+    const countElement = progressElement.querySelector('.translation-progress-count');
+    if (countElement) {
+        countElement.textContent = `已完成：${current}/${total}`;
+    }
+    
+    // 更新百分比
+    const percentElement = progressElement.querySelector('.translation-progress-percentage');
+    if (percentElement) {
+        percentElement.textContent = `${percent}%`;
+    }
+    
+    // 更新进度条
+    const fillElement = progressElement.querySelector('.translation-progress-fill');
+    if (fillElement) {
+        fillElement.style.width = `${percent}%`;
+    }
+    
+    // 更新详情文本
+    const detailElement = progressElement.querySelector('.translation-progress-detail');
+    if (detailElement) {
+        detailElement.textContent = detail ? detail : '';
+    }
+}
+
+// 清除翻译进度显示
+function clearTranslationProgress() {
+    const subtitleDisplay = document.getElementById('subtitle-display');
+    if (!subtitleDisplay) return;
+    
+    const progressElement = subtitleDisplay.querySelector('.translation-progress');
+    if (progressElement) {
+        progressElement.remove();
+    }
+}
+
+// 修改进度事件监听器
+window.electronAPI.onTranslationProgress((data) => {
+    console.log('[渲染进程] 收到进度更新:', data);
+    if (!translationInProgress) return;
+    
+    const { current, total, text } = data;
+    updateTranslationProgress(
+        current,
+        total,
+        text ? `当前翻译：${text.substring(0, 30)}${text.length > 30 ? '...' : ''}` : ''
+    );
+});
