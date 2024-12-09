@@ -86,7 +86,7 @@ function updateFileList(audioIndex) {
     });
 }
 
-function showContextMenu(event, hash) {
+async function showContextMenu(event, hash) {
     // 移除已存在的上下文菜单
     const existingMenu = document.querySelector('.context-menu');
     if (existingMenu) {
@@ -95,8 +95,38 @@ function showContextMenu(event, hash) {
 
     const menu = document.createElement('div');
     menu.className = 'context-menu';
+
+    // 获取字幕数据以检查是否有翻译
+    const cachedData = await window.electronAPI.loadCachedData(hash);
+    const hasTranslations = cachedData && cachedData.translations && Object.keys(cachedData.translations).length > 0;
     
-    // 只保留删除按钮
+    // 添加翻译按钮
+    const translateBtn = document.createElement('button');
+    translateBtn.className = 'context-menu-item';
+    translateBtn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M1.5 3L4.5 9L7.5 3M2.5 6h4M9 2v8" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>翻译</span>
+    `;
+    
+    if (hasTranslations) {
+        translateBtn.classList.add('disabled');
+        translateBtn.title = '该文件已有翻译';
+    } else {
+        translateBtn.addEventListener('click', async () => {
+            // TODO: 实现翻译功能
+            menu.remove();
+        });
+    }
+    
+    menu.appendChild(translateBtn);
+    
+    // 添加删除按钮
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'context-menu-item destructive';
     deleteBtn.innerHTML = `
