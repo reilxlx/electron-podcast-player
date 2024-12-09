@@ -119,8 +119,82 @@ async function showContextMenu(event, hash) {
         translateBtn.title = '该文件已有翻译';
     } else {
         translateBtn.addEventListener('click', async () => {
-            // TODO: 实现翻译功能
             menu.remove();
+            
+            // 显示加载状态
+            const subtitleDisplay = document.getElementById('subtitle-display');
+            const originalContent = subtitleDisplay.innerHTML;
+            subtitleDisplay.innerHTML = `
+                <div class="transcription-status">
+                    <div class="loading-spinner"></div>
+                    <p>正在翻译字幕，请稍候...</p>
+                </div>
+            `;
+            
+            try {
+                // 准备翻译数据
+                if (!cachedData || !cachedData.subtitles || !Array.isArray(cachedData.subtitles)) {
+                    throw new Error('字幕数据无效');
+                }
+                
+                const textsToTranslate = cachedData.subtitles
+                    .filter(subtitle => subtitle && typeof subtitle === 'object')
+                    .map((subtitle, index) => {
+                        // 从字幕对象中获取文本内容
+                        let text = '';
+                        if (subtitle.text) {
+                            text = subtitle.text;
+                        } else if (subtitle.original_text) {
+                            text = subtitle.original_text;
+                        } else if (Array.isArray(subtitle.words)) {
+                            text = subtitle.words.map(word => word.text).join(' ');
+                        }
+                        
+                        return {
+                            index: index,
+                            text: text.trim()
+                        };
+                    })
+                    .filter(item => item.text !== '');
+                
+                if (textsToTranslate.length === 0) {
+                    throw new Error('没有找到可翻译的文本');
+                }
+                
+                console.log('[翻译] 准备翻译的文本:', textsToTranslate);
+                
+                // 调用翻译API
+                const translationResult = await window.electronAPI.translateSubtitles({
+                    fileHash: hash,
+                    subtitles: textsToTranslate,
+                    translator: 'google',
+                    apiKey: null  // Google翻译不需要API key
+                });
+                
+                // 更新UI显示
+                const translationToggle = document.getElementById('show-translation');
+                translationToggle.checked = true;
+                showTranslation = true;
+                
+                // 重新加载字幕显示
+                const updatedData = await window.electronAPI.loadCachedData(hash);
+                subtitles = updatedData.subtitles;
+                translations = updatedData.translations || {};
+                displaySubtitles(subtitles, translations, showTranslation);
+                
+            } catch (error) {
+                console.error('翻译失败:', error);
+                subtitleDisplay.innerHTML = `
+                    <div class="error-message">
+                        <p>翻译失败: ${error.message}</p>
+                    </div>
+                `;
+                
+                // 3秒后恢复原始内容
+                setTimeout(() => {
+                    subtitleDisplay.innerHTML = originalContent;
+                }, 3000);
+            }
         });
     }
     

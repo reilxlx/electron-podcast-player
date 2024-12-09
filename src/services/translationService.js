@@ -8,6 +8,12 @@ const fetch = require('node-fetch');
  * @returns {Promise<string|null>} 翻译后的文本，如果发生错误则返回null
  */
 async function googleTranslate(text, dest_lang = 'zh-cn', src_lang = 'auto') {
+  // 检查文本是否为空
+  if (!text) {
+    console.log(`[翻译] 警告: 收到空文本`);
+    return '';
+  }
+
   console.log(`[翻译] 开始翻译文本: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
   try {
     const url = "https://translate.googleapis.com/translate_a/single";
