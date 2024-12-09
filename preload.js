@@ -28,5 +28,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => {
       translationProgressCallback = null;
     };
+  },
+
+  onAudioIndexUpdated: (callback) => {
+    ipcRenderer.on('audio-index-updated', () => callback());
+    return () => ipcRenderer.removeAllListeners('audio-index-updated');
   }
 });

@@ -50,60 +50,63 @@ async function createWindow() {
 
   ipcMain.handle('transcribe-audio', async (event, fileInfo) => {
     try {
-        console.log('[主进程] 开始处理音频转录请求');
-        
-        // 从配置文件中读取ASR API Key
-        console.log('[主进程] 加载配置文��...');
-        const config = loadConfig();
-        if (!config.asr_api_key) {
-            console.error('[主进程] 未找到ASR API Key');
-            throw new Error('未找到ASR API Key，请在配置文件中设置asr_api_key');
-        }
+      console.log('[主进程] 开始处理音频转录请求');
 
-        // 调用转录服务
-        console.log('[主进程] 调用转录服务...');
-        const transcript = await transcribeAudio(fileInfo.filePath, config.asr_api_key);
-        
-        // 解析转录结果
-        console.log('[主进程] 解析转录结果...');
-        const subtitles = [];
-        if (transcript.utterances) {
-            transcript.utterances.forEach((utterance, index) => {
-                subtitles.push({
-                    index: index,
-                    speaker: utterance.speaker,
-                    text: utterance.text,
-                    start_time: utterance.start,
-                    end_time: utterance.end,
-                    words: utterance.words || []
-                });
-            });
-        }
+      // 从配置文件中读取ASR API Key
+      console.log('[主进程] 加载配置文件...');
+      const config = loadConfig();
+      if (!config.asr_api_key) {
+        console.error('[主进程] 未找到ASR API Key');
+        throw new Error('未找到ASR API Key，请在配置文件中设置asr_api_key');
+      }
 
-        // 构建完整的字幕数据对象
-        const subtitleData = {
-            subtitles: transcript.subtitles, // 使用转录服务返回的格式化字幕
-            file_path: fileInfo.filePath     // 添加文件路径
-        };
+      // 调用转录服务
+      console.log('[主进程] 调用转录服务...');
+      const transcript = await transcribeAudio(fileInfo.filePath, config.asr_api_key);
 
-        // 保存字幕缓存
-        console.log('[主进程] 保存字幕缓存...');
-        await saveSubtitleCache(fileInfo.hash, subtitleData);
+      // 解析转录结果
+      console.log('[主进程] 解析转录结果...');
+      const subtitles = [];
+      if (transcript.utterances) {
+        transcript.utterances.forEach((utterance, index) => {
+          subtitles.push({
+            index: index,
+            speaker: utterance.speaker,
+            text: utterance.text,
+            start_time: utterance.start,
+            end_time: utterance.end,
+            words: utterance.words || []
+          });
+        });
+      }
 
-        // 更新音频索引
-        console.log('[主进程] 更新音频索引...');
-        const audioIndex = loadAudioIndex();
-        audioIndex[fileInfo.hash] = {
-            file_path: fileInfo.filePath,
-            subtitle_file: `podcast_data/subtitles/${fileInfo.hash}.json`
-        };
-        saveAudioIndex(audioIndex);
+      // 构建完整的字幕数据对象
+      const subtitleData = {
+        subtitles: transcript.subtitles, // 使用转录服务返回的格式化字幕
+        file_path: fileInfo.filePath     // 添加文件路径
+      };
 
-        console.log('[主进程] 音频处理完成');
-        return subtitleData;
+      // 保存字幕缓存
+      console.log('[主进程] 保存字幕缓存...');
+      await saveSubtitleCache(fileInfo.hash, subtitleData);
+
+      // 更新音频索引
+      console.log('[主进程] 更新音频索引...');
+      audioIndex[fileInfo.hash] = {
+        file_path: fileInfo.filePath,
+        subtitle_file: `podcast_data/subtitles/${fileInfo.hash}.json`
+      };
+      saveAudioIndex(audioIndex);
+
+      // 通知渲染进程重新加载音频索引并更新列表
+      console.log('[主进程] 通知渲染进程重新加载音频索引');
+      mainWindow.webContents.send('audio-index-updated');
+
+      console.log('[主进程] 音频处理完成');
+      return subtitleData;
     } catch (error) {
-        console.error('[主进程] 音频转录失败:', error);
-        throw error;
+      console.error('[主进程] 音频转录失败:', error);
+      throw error;
     }
   });
 

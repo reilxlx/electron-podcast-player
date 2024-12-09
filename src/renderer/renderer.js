@@ -62,6 +62,27 @@ window.addEventListener('DOMContentLoaded', async () => {
             historyList.classList.remove('scrolling');
         }, 1000);
     });
+
+    // 监听主进程发来的音频索引更新通知
+    window.electronAPI.onAudioIndexUpdated(() => {
+        console.log('[渲染进程] 收到音频索引更新通知');
+        window.electronAPI.getAudioIndex().then(updatedAudioIndex => {
+            updateFileList(updatedAudioIndex);
+            
+            // 设置新添加的文件为激活状态
+            const currentItem = document.querySelector(`.history-item:first-child`);
+            if (currentItem) {
+                // 移除其他项的激活状态
+                document.querySelectorAll('.history-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                currentItem.classList.add('active');
+                
+                // 确保新添加的项可见
+                currentItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        });
+    });
 });
 
 function updateFileList(audioIndex) {
