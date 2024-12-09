@@ -365,6 +365,7 @@ audio {
   cursor: pointer;
   transition: background-color var(--transition-speed) ease;
   font-size: 13px;
+  font-weight: 500;
   color: var(--text-primary);
   white-space: nowrap;
   overflow: hidden;
@@ -379,7 +380,7 @@ audio {
 }
 
 .history-item.active {
-  background-color: var(--hover-color);
+  background-color: var(--active-color);
   color: var(--text-primary);
 }
 

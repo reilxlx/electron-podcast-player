@@ -53,9 +53,13 @@ function updateFileList(audioIndex) {
     const fileList = document.getElementById('file-list');
     fileList.innerHTML = '';
     
-    Object.entries(audioIndex).forEach(([hash, info]) => {
+    // 将对象转换为数组并倒序排列
+    const entries = Object.entries(audioIndex).reverse();
+    
+    entries.forEach(([hash, info]) => {
         const div = document.createElement('div');
         div.className = 'history-item';
+        div.setAttribute('data-hash', hash);
         div.textContent = info.file_path.split('/').pop();
         
         // 添加文件名称提示功能
@@ -64,20 +68,16 @@ function updateFileList(audioIndex) {
         
         div.addEventListener('mouseenter', (e) => {
             tooltipTimeout = setTimeout(() => {
-                // 创建提示框
                 tooltip = document.createElement('div');
                 tooltip.className = 'filename-tooltip';
                 tooltip.textContent = info.file_path.split('/').pop();
                 
-                // 计算位置
                 const rect = div.getBoundingClientRect();
                 tooltip.style.left = `${rect.right + 10}px`;
                 tooltip.style.top = `${rect.top}px`;
                 
-                // 添加到文档中
                 document.body.appendChild(tooltip);
                 
-                // 触发动画
                 requestAnimationFrame(() => {
                     tooltip.classList.add('show');
                 });
@@ -88,7 +88,6 @@ function updateFileList(audioIndex) {
             clearTimeout(tooltipTimeout);
             if (tooltip) {
                 tooltip.classList.remove('show');
-                // 等待过渡动画完成后移除元素
                 setTimeout(() => {
                     tooltip && tooltip.remove();
                     tooltip = null;
@@ -102,6 +101,17 @@ function updateFileList(audioIndex) {
 }
 
 async function loadHistoryFile(hash, info) {
+    // 先移除其他项的 active 类
+    document.querySelectorAll('.history-item').forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // 为当前点击项添加 active 类
+    const currentItem = document.querySelector(`.history-item[data-hash="${hash}"]`);
+    if (currentItem) {
+        currentItem.classList.add('active');
+    }
+    
     try {
         currentFileHash = hash;
         
@@ -118,6 +128,11 @@ async function loadHistoryFile(hash, info) {
             await setTranslatorFromHistory(translator);
             
             displaySubtitles(subtitles, translations, showTranslation);
+            
+            // 重新触发一次时间更新，确保字幕高亮状态正确
+            if (audioPlayer.currentTime > 0) {
+                onTimeUpdate();
+            }
         }
     } catch (error) {
         console.error('加载历史文件失败:', error);
@@ -128,6 +143,7 @@ function displaySubtitles(subtitles, translations, showTranslation) {
     const subtitleDisplay = document.getElementById('subtitle-display');
     subtitleDisplay.innerHTML = '';
     wordPositions = [];
+    currentSubtitleIndex = -1;  // 重置当前字幕索引
     
     const container = document.createElement('div');
     container.className = 'subtitle-container';
@@ -138,6 +154,13 @@ function displaySubtitles(subtitles, translations, showTranslation) {
         subtitleBlock.className = 'subtitle-block';
         subtitleBlock.setAttribute('data-index', index);
         subtitleBlock.setAttribute('data-speaker', subtitle.speaker);
+        
+        // 检查当前时间，如果在这个字幕的时间范围内，则添加active类
+        if (audioPlayer && audioPlayer.currentTime * 1000 >= subtitle.start_time 
+            && audioPlayer.currentTime * 1000 <= subtitle.end_time) {
+            subtitleBlock.classList.add('active');
+            currentSubtitleIndex = index;
+        }
         
         subtitleBlock.addEventListener('click', () => {
             const startTime = subtitle.start_time / 1000;
@@ -219,32 +242,36 @@ function updateSubtitleHighlight(currentTime) {
     let newIndex = -1;
 
     for (let i = 0; i < subtitles.length; i++) {
-        if (currentTime >= subtitles[i].start_time && currentTime <= subtitles[i].end_time) {
+        const subtitle = subtitles[i];
+        if (currentTime >= subtitle.start_time && currentTime <= subtitle.end_time) {
             newIndex = i;
             break;
         }
     }
 
-    if (newIndex !== -1 && newIndex !== currentSubtitleIndex) {
+    // 只有当索引发生变化时才更新高亮状态
+    if (newIndex !== currentSubtitleIndex) {
         subtitleBlocks.forEach(block => block.classList.remove('active'));
         
-        const newBlock = document.querySelector(`[data-index="${newIndex}"]`);
-        if (newBlock) {
-            newBlock.classList.add('active');
-            
-            const container = document.querySelector('.subtitle-container');
-            const containerRect = container.getBoundingClientRect();
-            const blockRect = newBlock.getBoundingClientRect();
+        if (newIndex !== -1) {
+            const newBlock = document.querySelector(`[data-index="${newIndex}"]`);
+            if (newBlock) {
+                newBlock.classList.add('active');
+                
+                const container = document.querySelector('.subtitle-container');
+                const containerRect = container.getBoundingClientRect();
+                const blockRect = newBlock.getBoundingClientRect();
 
-            const blockCenter = blockRect.height / 2;
-            const containerCenter = containerRect.height / 2;
-            const offsetTop = (blockRect.top - containerRect.top) + container.scrollTop;
-            const targetScrollTop = offsetTop - containerCenter + blockCenter;
+                const blockCenter = blockRect.height / 2;
+                const containerCenter = containerRect.height / 2;
+                const offsetTop = (blockRect.top - containerRect.top) + container.scrollTop;
+                const targetScrollTop = offsetTop - containerCenter + blockCenter;
 
-            container.scrollTo({
-                top: targetScrollTop,
-                behavior: 'smooth'
-            });
+                container.scrollTo({
+                    top: targetScrollTop,
+                    behavior: 'smooth'
+                });
+            }
         }
         
         currentSubtitleIndex = newIndex;
@@ -347,9 +374,19 @@ async function handleAudioFile(filePath) {
         // 更新音频播放器源
         audioPlayer.src = filePath;
         
-        // 更新文件列表
+        // 更新文件列表并立即显示
         const audioIndex = await window.electronAPI.getAudioIndex();
         updateFileList(audioIndex);
+        
+        // 设置新添加的文件为激活状态
+        const currentItem = document.querySelector(`.history-item[data-hash="${result.fileHash}"]`);
+        if (currentItem) {
+            // 移除其他项的激活状态
+            document.querySelectorAll('.history-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            currentItem.classList.add('active');
+        }
 
     } catch (error) {
         // 显示错误信息
