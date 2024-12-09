@@ -183,12 +183,25 @@ async function showContextMenu(event, hash) {
                 createTranslationProgress();
                 
                 try {
+                    // 获取当前选中的翻译器和API key
+                    const activePill = document.querySelector('.option-pill.active');
+                    const selectedTranslator = activePill ? activePill.getAttribute('data-translator') : 'google';
+                    let apiKey = null;
+                    
+                    if (selectedTranslator === 'silicon_cloud') {
+                        const config = await window.electronAPI.getConfig();
+                        if (!config || !config.silicon_cloud_api_key) {
+                            throw new Error('未配置SiliconCloud API密钥');
+                        }
+                        apiKey = config.silicon_cloud_api_key;
+                    }
+                    
                     // 调用翻译API
                     const translationResult = await window.electronAPI.translateSubtitles({
                         fileHash: hash,
                         subtitles: textsToTranslate,
-                        translator: 'google',
-                        apiKey: null
+                        translator: selectedTranslator,
+                        apiKey: apiKey
                     });
                     
                     console.log('[渲染进程] 翻译完成');
