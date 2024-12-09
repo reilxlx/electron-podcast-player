@@ -114,7 +114,7 @@ async function createWindow() {
     try {
       console.log('[主进程] 开始翻译，总数:', subtitles.length);
       
-      // 批量翻译
+      // 批量翻译 (使用并发)
       const texts = subtitles.map((s, i) => ({index: i, text: s.text}));
       const result = await translateTextBatch(texts, translator, apiKey, (index, text) => {
         console.log(`[主进程] 翻译进度: ${index + 1}/${texts.length}`);
@@ -128,7 +128,7 @@ async function createWindow() {
         } catch (err) {
           console.error('[主进程] 发送进度更新失败:', err);
         }
-      });
+      }, 2); // 设置并发数为 2
       
       console.log('[主进程] 翻译完成，保存结果');
       
