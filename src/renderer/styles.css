@@ -205,20 +205,6 @@ body {
   display: none;
 }
 
-.translate-button {
-  padding: 8px 16px;
-  border-radius: 6px;
-  background-color: var(--primary-color);
-  color: white;
-  font-size: 13px;
-  cursor: pointer;
-  transition: opacity var(--transition-speed) ease;
-}
-
-.translate-button:hover {
-  opacity: 0.9;
-}
-
 /* 字幕区域 */
 .subtitle-section {
   flex: 1;
