@@ -205,6 +205,22 @@ body {
   display: none;
 }
 
+/* 翻译开关禁用状态样式 */
+.toggle input[type="checkbox"]:disabled + .toggle-slider {
+  background-color: var(--border-color);
+  cursor: not-allowed;
+}
+
+.toggle input[type="checkbox"]:disabled ~ .toggle-label {
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.toggle input[type="checkbox"]:disabled + .toggle-slider:before {
+  background-color: #FFFFFF;
+  cursor: not-allowed;
+}
+
 /* 字幕区域 */
 .subtitle-section {
   flex: 1;

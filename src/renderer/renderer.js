@@ -209,10 +209,22 @@ async function loadHistoryFile(hash, info) {
             subtitles = cachedData.subtitles;
             translations = cachedData.translations || {};
             
-            const firstTranslation = Object.values(translations)[0];
-            const translator = firstTranslation ? firstTranslation.translator : 'google';
+            // 检查是否有翻译数据
+            const hasTranslations = translations && Object.keys(translations).length > 0;
+            const translationToggle = document.getElementById('show-translation');
+            translationToggle.disabled = !hasTranslations;
             
-            await setTranslatorFromHistory(translator);
+            // 如果没有翻译，强制关闭翻译显示
+            if (!hasTranslations) {
+                translationToggle.checked = false;
+                showTranslation = false;
+            }
+            
+            if (hasTranslations) {
+                const firstTranslation = Object.values(translations)[0];
+                const translator = firstTranslation ? firstTranslation.translator : 'google';
+                await setTranslatorFromHistory(translator);
+            }
             
             displaySubtitles(subtitles, translations, showTranslation);
             
@@ -222,7 +234,7 @@ async function loadHistoryFile(hash, info) {
             }
         }
     } catch (error) {
-        console.error('加历史文件失败:', error);
+        console.error('加载历史文件失败:', error);
     }
 }
 
