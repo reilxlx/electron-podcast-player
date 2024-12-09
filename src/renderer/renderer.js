@@ -112,7 +112,7 @@ function showContextMenu(event, hash) {
     
     deleteBtn.addEventListener('click', async () => {
         const confirmed = await window.electronAPI.showConfirmDialog({
-            title: '确认���除',
+            title: '确认删除',
             message: '确定要删除这个文件的字幕记录吗？',
             buttons: ['删除', '取消']
         });
@@ -442,7 +442,7 @@ async function handleAudioFile(filePath) {
         const result = await window.electronAPI.selectAudio(filePath);
         
         if (result.cachedData) {
-            // 果有缓存，直接使用缓存数据
+            // 如果有缓存，直接使用缓存数据
             subtitles = result.cachedData.subtitles;
             translations = result.cachedData.translations || {};
             displaySubtitles(subtitles, translations, showTranslation);
