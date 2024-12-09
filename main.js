@@ -8,6 +8,7 @@ const { transcribeAudio } = require('./src/services/transcriptionService');
 const { translateTextBatch } = require('./src/services/translationService');
 const { parseTranscript, generateSubtitleTimes } = require('./src/services/subtitleParser');
 const { AssemblyAI } = require('assemblyai');
+const fs = require('fs');
 
 let mainWindow = null;
 let audioIndex = {};
@@ -52,7 +53,7 @@ async function createWindow() {
         console.log('[主进程] 开始处理音频转录请求');
         
         // 从配置文件中读取ASR API Key
-        console.log('[主进程] 加载配置文件...');
+        console.log('[主进程] 加载配置文��...');
         const config = loadConfig();
         if (!config.asr_api_key) {
             console.error('[主进程] 未找到ASR API Key');
@@ -138,6 +139,37 @@ async function createWindow() {
       return result.filePaths[0];
     }
     return null;
+  });
+
+  ipcMain.handle('delete-history-file', async (event, hash) => {
+    try {
+        // 删除字幕文件
+        const subtitlePath = path.join(__dirname, 'podcast_data/subtitles', `${hash}.json`);
+        if (fs.existsSync(subtitlePath)) {
+            fs.unlinkSync(subtitlePath);
+        }
+        
+        // 从索引中删除记录
+        delete audioIndex[hash];
+        saveAudioIndex(audioIndex);
+        
+        return true;
+    } catch (error) {
+        console.error('删除历史文件失败:', error);
+        throw error;
+    }
+  });
+
+  ipcMain.handle('show-confirm-dialog', async (event, options) => {
+    const result = await dialog.showMessageBox(mainWindow, {
+        type: 'question',
+        buttons: options.buttons,
+        title: options.title,
+        message: options.message,
+        defaultId: 1,
+        cancelId: 1,
+    });
+    return result.response;
   });
 }
 // 添加IPC处理器

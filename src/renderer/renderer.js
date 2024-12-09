@@ -53,51 +53,138 @@ function updateFileList(audioIndex) {
     const fileList = document.getElementById('file-list');
     fileList.innerHTML = '';
     
-    // 将对象转换为数组并倒序排列
     const entries = Object.entries(audioIndex).reverse();
     
     entries.forEach(([hash, info]) => {
         const div = document.createElement('div');
         div.className = 'history-item';
         div.setAttribute('data-hash', hash);
-        div.textContent = info.file_path.split('/').pop();
+        const fileName = info.file_path.split('/').pop();
+        div.textContent = fileName;
         
-        // 添加文件名称提示功能
+        // 添加右键菜单事件
+        div.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            showContextMenu(e, hash);
+        });
+        
+        // 修改悬浮显示，只显示文件名
         let tooltipTimeout;
-        let tooltip;
-        
         div.addEventListener('mouseenter', (e) => {
             tooltipTimeout = setTimeout(() => {
-                tooltip = document.createElement('div');
-                tooltip.className = 'filename-tooltip';
-                tooltip.textContent = info.file_path.split('/').pop();
-                
-                const rect = div.getBoundingClientRect();
-                tooltip.style.left = `${rect.right + 10}px`;
-                tooltip.style.top = `${rect.top}px`;
-                
-                document.body.appendChild(tooltip);
-                
-                requestAnimationFrame(() => {
-                    tooltip.classList.add('show');
-                });
+                showTooltip(e, fileName);  // 只传入文件名
             }, 500);
         });
         
         div.addEventListener('mouseleave', () => {
             clearTimeout(tooltipTimeout);
-            if (tooltip) {
-                tooltip.classList.remove('show');
-                setTimeout(() => {
-                    tooltip && tooltip.remove();
-                    tooltip = null;
-                }, 200);
-            }
+            hideTooltip();
         });
         
         div.addEventListener('click', () => loadHistoryFile(hash, info));
         fileList.appendChild(div);
     });
+}
+
+function showContextMenu(event, hash) {
+    // 移除已存在的上下文菜单
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+    
+    // 只保留删除按钮
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'context-menu-item destructive';
+    deleteBtn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M1.5 3h9m-8 0l.5 7h6l.5-7m-5-1.5v-1h3v1" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>删除</span>
+    `;
+    
+    deleteBtn.addEventListener('click', async () => {
+        const confirmed = await window.electronAPI.showConfirmDialog({
+            title: '确认���除',
+            message: '确定要删除这个文件的字幕记录吗？',
+            buttons: ['删除', '取消']
+        });
+        
+        if (confirmed === 0) {
+            await window.electronAPI.deleteHistoryFile(hash);
+            const audioIndex = await window.electronAPI.getAudioIndex();
+            updateFileList(audioIndex);
+        }
+        menu.remove();
+    });
+
+    menu.appendChild(deleteBtn);
+    document.body.appendChild(menu);
+
+    // 设置菜单位置
+    const x = event.clientX;
+    const y = event.clientY;
+    
+    // 确保菜单不会超出窗口边界
+    const menuRect = menu.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    let menuX = x;
+    let menuY = y;
+    
+    if (x + menuRect.width > windowWidth) {
+        menuX = windowWidth - menuRect.width;
+    }
+    
+    if (y + menuRect.height > windowHeight) {
+        menuY = windowHeight - menuRect.height;
+    }
+    
+    menu.style.left = `${menuX}px`;
+    menu.style.top = `${menuY}px`;
+
+    // 点击其他区域关闭菜单
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+    
+    setTimeout(() => {
+        document.addEventListener('click', closeMenu);
+    }, 0);
+}
+
+// 文件名提示框相关函数
+function showTooltip(event, fileName) {  // 修改参数名以更好地反映其内容
+    const tooltip = document.createElement('div');
+    tooltip.className = 'filename-tooltip';
+    tooltip.textContent = fileName;  // 直接使用文件名
+    document.body.appendChild(tooltip);
+
+    const rect = event.target.getBoundingClientRect();
+    tooltip.style.left = `${rect.left}px`;
+    tooltip.style.top = `${rect.bottom + 5}px`;
+
+    requestAnimationFrame(() => {
+        tooltip.classList.add('show');
+    });
+}
+
+function hideTooltip() {
+    const tooltip = document.querySelector('.filename-tooltip');
+    if (tooltip) {
+        tooltip.remove();
+    }
 }
 
 async function loadHistoryFile(hash, info) {
@@ -135,7 +222,7 @@ async function loadHistoryFile(hash, info) {
             }
         }
     } catch (error) {
-        console.error('加载历史文件失败:', error);
+        console.error('加历史文件失败:', error);
     }
 }
 
@@ -355,7 +442,7 @@ async function handleAudioFile(filePath) {
         const result = await window.electronAPI.selectAudio(filePath);
         
         if (result.cachedData) {
-            // 如果有缓存，直接使用缓存数据
+            // 果有缓存，直接使用缓存数据
             subtitles = result.cachedData.subtitles;
             translations = result.cachedData.translations || {};
             displaySubtitles(subtitles, translations, showTranslation);

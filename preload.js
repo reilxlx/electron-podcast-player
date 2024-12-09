@@ -9,9 +9,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   loadCachedData: (fileHash) => ipcRenderer.invoke('load-cached-data', fileHash),
   saveConfig: (newConfig) => ipcRenderer.invoke('save-config', newConfig),
 
-  selectAudioFile: () => ipcRenderer.invoke('select-audio-file')
-});
-contextBridge.exposeInMainWorld('electronAPI', {
-  // ... 其他API ...
+  selectAudioFile: () => ipcRenderer.invoke('select-audio-file'),
   getSiliconCloudApiKey: () => ipcRenderer.invoke('get-silicon-cloud-api-key'),
+  deleteHistoryFile: (hash) => ipcRenderer.invoke('delete-history-file', hash),
+  showConfirmDialog: (options) => ipcRenderer.invoke('show-confirm-dialog', options),
 });

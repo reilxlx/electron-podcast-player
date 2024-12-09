@@ -512,3 +512,57 @@ audio {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* 右键菜单样式 */
+.context-menu {
+    position: fixed;
+    min-width: 200px;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-radius: 6px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    padding: 4px;
+    animation: menuFadeIn 0.1s ease-out;
+}
+
+.context-menu-item {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    margin: 2px;
+    font-size: 13px;
+    color: #000000;
+    border-radius: 4px;
+    cursor: default;
+    background: transparent;
+    border: none;
+    width: 100%;
+    text-align: left;
+}
+
+.context-menu-item:hover {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.context-menu-item.destructive {
+    color: #ff3b30;
+}
+
+.context-menu-item.destructive:hover {
+    background-color: #ff3b30;
+    color: white;
+}
+
+@keyframes menuFadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
