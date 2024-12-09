@@ -209,7 +209,8 @@ async function showContextMenu(event, hash) {
                     // 更新UI显示
                     const translationToggle = document.getElementById('show-translation');
                     translationToggle.checked = true;
-                    showTranslation();
+                    showTranslation = true;
+                    toggleTranslation();
                 } catch (error) {
                     console.error('[渲染进程] 翻译失败:', error);
                     throw error;
@@ -456,8 +457,14 @@ function displaySubtitles(subtitles, translations, showTranslation) {
 function toggleTranslation() {
     const translationElements = document.querySelectorAll('.translation-text');
     
-    const activeBlock = document.querySelector('.subtitle-block.active');
+    // 获取容器元素，添加空值检查
     const container = document.querySelector('.subtitle-container');
+    if (!container) {
+        console.warn('未找到字幕容器元素');
+        return;
+    }
+    
+    const activeBlock = document.querySelector('.subtitle-block.active');
     let targetScrollTop = container.scrollTop;
     
     if (activeBlock) {
@@ -477,9 +484,12 @@ function toggleTranslation() {
         }
     });
 
-    requestAnimationFrame(() => {
-        container.scrollTop = targetScrollTop;
-    });
+    // 确保容器存在后再执行滚动
+    if (container) {
+        requestAnimationFrame(() => {
+            container.scrollTop = targetScrollTop;
+        });
+    }
 }
 
 function updateSubtitleHighlight(currentTime) {
