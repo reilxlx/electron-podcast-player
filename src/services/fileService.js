@@ -1,12 +1,16 @@
+const { app } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-const dataDir = path.join(process.cwd(), 'podcast_data');
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir);
+// 根据是否打包使用不同的基础路径
+const baseDir = app.isPackaged ? path.join(app.getPath('userData'), 'podcast_data') : path.join(process.cwd(), 'podcast_data');
+
+const dataDir = baseDir;
+if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 const subtitleCacheDir = path.join(dataDir, 'subtitles');
-if (!fs.existsSync(subtitleCacheDir)) fs.mkdirSync(subtitleCacheDir);
+if (!fs.existsSync(subtitleCacheDir)) fs.mkdirSync(subtitleCacheDir, { recursive: true });
 
 const audioIndexFile = path.join(dataDir, 'audio_index.json');
 const configFile = path.join(dataDir, 'config.json');
@@ -54,12 +58,7 @@ async function getFileHash(filePath) {
 const saveSubtitleCache = (fileHash, data) => {
     console.log(`[文件服务] 开始保存字幕缓存，文件哈希: ${fileHash}`);
     try {
-        const subtitleDir = path.join(__dirname, '../../podcast_data/subtitles');
-        if (!fs.existsSync(subtitleDir)) {
-            console.log('[文件服务] 创建字幕缓存目录');
-            fs.mkdirSync(subtitleDir, { recursive: true });
-        }
-        const subtitlePath = path.join(subtitleDir, `${fileHash}.json`);
+        const subtitlePath = path.join(subtitleCacheDir, `${fileHash}.json`);
         
         // 验证数据格式
         if (!data.subtitles || !Array.isArray(data.subtitles)) {
@@ -101,7 +100,7 @@ const saveSubtitleCache = (fileHash, data) => {
 const loadSubtitleCache = (fileHash) => {
     console.log(`[文件服务] 尝试加载字幕缓存，文件哈希: ${fileHash}`);
     try {
-        const subtitlePath = path.join(__dirname, '../../podcast_data/subtitles', `${fileHash}.json`);
+        const subtitlePath = path.join(subtitleCacheDir, `${fileHash}.json`);
         if (fs.existsSync(subtitlePath)) {
             const data = JSON.parse(fs.readFileSync(subtitlePath, 'utf8'));
             

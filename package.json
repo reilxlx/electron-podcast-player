@@ -1,0 +1,43 @@
+{
+  "name": "electron-audioplay",
+  "version": "1.0.0",
+  "description": "Audio Player Application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "com.audioplay.app",
+    "productName": "Audio Player",
+    "mac": {
+      "category": "public.app-category.music",
+      "target": [
+        "dmg",
+        "zip"
+      ]
+    },
+    "files": [
+      "**/*",
+      "!tests/*",
+      "!logs/*"
+    ],
+    "extraResources": [
+      {
+        "from": "podcast_data",
+        "to": "podcast_data"
+      }
+    ]
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "assemblyai": "^4.8.0",
+    "node-fetch": "^2.7.0"
+  },
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  }
+}

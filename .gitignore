@@ -1,8 +1,4 @@
-# 忽略所有 JSON 文件
-*.json
-
 *.py
-
 .wav
 .mp3
 .m4a
@@ -10,7 +6,9 @@
 # 忽略特定目录
 /node_modules/
 /podcast_data/
-
+/dist/
+/build/
+/logs/
 
 # 忽略临时文件
 *.tmp

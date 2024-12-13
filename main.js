@@ -14,6 +14,16 @@ let mainWindow = null;
 let audioIndex = {};
 let config = {};
 
+const isDev = process.env.NODE_ENV === 'development';
+
+// 获取 podcast_data 文件夹的路径
+const getPodcastDataPath = () => {
+  if (isDev) {
+    return path.join(__dirname, 'podcast_data');
+  }
+  return path.join(process.resourcesPath, 'podcast_data');
+};
+
 async function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1200,
@@ -110,37 +120,33 @@ async function createWindow() {
     }
   });
 
-  ipcMain.handle('translate-subtitles', async (event, {fileHash, subtitles, translator, apiKey}) => {
+  ipcMain.handle('translate-subtitles', async (event, { fileHash, subtitles, translator, apiKey }) => {
+    console.log('[主进程] 收到翻译请求，使用的翻译器:', translator);
     try {
-      console.log('[主进程] 开始翻译，总数:', subtitles.length);
-      
-      // 批量翻译 (使用并发)
-      const texts = subtitles.map((s, i) => ({index: i, text: s.text}));
-      const result = await translateTextBatch(texts, translator, apiKey, (index, text) => {
-        console.log(`[主进程] 翻译进度: ${index + 1}/${texts.length}`);
-        // 发送进度更新到渲染进程
-        try {
-          event.sender.send('translation-progress', {
-            current: index + 1,
-            total: texts.length,
-            text: text
-          });
-        } catch (err) {
-          console.error('[主进程] 发送进度更新失败:', err);
-        }
-      }, 2); // 设置并发数为 2
-      
-      console.log('[主进程] 翻译完成，保存结果');
-      
-      // 加载缓存
+      const translatedSubtitles = await translateTextBatch(
+        subtitles,
+        translator,
+        apiKey,
+        (current, text) => {
+          // 向渲染进程发送进度更新
+          mainWindow.webContents.send('translation-progress', { current, total: subtitles.length, text });
+        },
+        2 // 并发数
+      );
+
+      // 更新缓存数据
       const cachedData = loadSubtitleCache(fileHash);
-      cachedData.translations = result;
-      saveSubtitleCache(fileHash, cachedData);
-      
-      return result;
+      if (cachedData) {
+        cachedData.translations = translatedSubtitles;
+        // 保存更新后的缓存
+        saveSubtitleCache(fileHash, cachedData);
+        console.log('[主进程] 翻译结果已保存到缓存');
+      }
+
+      return translatedSubtitles;
     } catch (error) {
       console.error('[主进程] 翻译失败:', error);
-      throw error;
+      throw error; // 错误抛出，以便在渲染进程中处理
     }
   });
 
