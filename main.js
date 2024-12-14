@@ -203,6 +203,11 @@ async function createWindow() {
     });
     return result.response;
   });
+
+  ipcMain.handle('get-subtitle-filepath', (event, hash) => {
+    const subtitlePath = path.join(getPodcastDataPath(), 'subtitles', `${hash}.json`);
+    return subtitlePath;
+  });
 }
 // 添加IPC处理器
 ipcMain.handle('get-silicon-cloud-api-key', async () => {

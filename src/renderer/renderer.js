@@ -264,6 +264,42 @@ async function showContextMenu(event, hash) {
     
     menu.appendChild(translateBtn);
     
+    // 添加路径按钮
+    const pathBtn = document.createElement('button');
+    pathBtn.className = 'context-menu-item';
+    pathBtn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M3 1H9C9.55228 1 10 1.44772 10 2V10C10 10.5523 9.55228 11 9 11H3C2.44772 11 2 10.5523 2 10V2C2 1.44772 2.44772 1 3 1Z" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M1 4H11" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>路径</span>
+    `;
+    console.log("Hash value:", hash); // 确认hash值
+    pathBtn.addEventListener('click', async () => {
+        menu.remove();
+        const filePath = await window.electronAPI.getSubtitleFilePath(hash);
+        // 使用macOS风格的提示框显示路径
+        const alertBox = document.createElement('div');
+        alertBox.className = 'macos-alert';
+        alertBox.innerHTML = `
+            <div class="macos-alert-icon">
+                <svg width="24" height="24" viewBox="0 0 24 24">
+                    <path d="M3 1H21C21.5523 1 22 1.44772 22 2V22C22 22.5523 21.5523 23 21 23H3C2.44772 23 2 22.5523 2 22V2C2 1.44772 2.44772 1 3 1Z" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M1 5H23" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div class="macos-alert-message">
+                <p class="macos-alert-title">字幕文件路径</p>
+                <p class="macos-alert-text">${filePath}</p>
+            </div>
+            <div class="macos-alert-buttons">
+                <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">关闭</button>
+            </div>
+        `;
+        document.body.appendChild(alertBox);
+    });
+    menu.appendChild(pathBtn);
+    
     // 添加删除按钮
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'context-menu-item destructive';

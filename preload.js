@@ -33,5 +33,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onAudioIndexUpdated: (callback) => {
     ipcRenderer.on('audio-index-updated', () => callback());
     return () => ipcRenderer.removeAllListeners('audio-index-updated');
-  }
+  },
+
+  getSubtitleFilePath: (hash) => ipcRenderer.invoke('get-subtitle-filepath', hash)
 });
