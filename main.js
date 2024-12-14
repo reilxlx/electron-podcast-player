@@ -93,7 +93,8 @@ async function createWindow() {
       // 构建完整的字幕数据对象
       const subtitleData = {
         subtitles: transcript.subtitles, // 使用转录服务返回的格式化字幕
-        file_path: fileInfo.filePath     // 添加文件路径
+        file_path: fileInfo.filePath,     // 添加文件路径
+        translations: {}                  // 添加一个空的 translations 对象
       };
 
       // 保存字幕缓存
@@ -176,7 +177,7 @@ async function createWindow() {
   ipcMain.handle('delete-history-file', async (event, hash) => {
     try {
         // 删除字幕文件
-        const subtitlePath = path.join(__dirname, 'podcast_data/subtitles', `${hash}.json`);
+        const subtitlePath = path.join(getPodcastDataPath(), 'subtitles', `${hash}.json`);
         if (fs.existsSync(subtitlePath)) {
             fs.unlinkSync(subtitlePath);
         }

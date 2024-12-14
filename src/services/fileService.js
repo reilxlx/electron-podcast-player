@@ -3,10 +3,16 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-// 根据是否打包使用不同的基础路径
-const baseDir = app.isPackaged ? path.join(app.getPath('userData'), 'podcast_data') : path.join(process.cwd(), 'podcast_data');
+// 获取 podcast_data 文件夹的路径
+function getPodcastDataPath() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'podcast_data');
+  } else {
+    return path.join(app.getAppPath(), 'podcast_data');
+  }
+}
 
-const dataDir = baseDir;
+const dataDir = getPodcastDataPath();
 if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
 const subtitleCacheDir = path.join(dataDir, 'subtitles');
@@ -29,7 +35,7 @@ function saveAudioIndex(index) {
 
 const loadConfig = () => {
     try {
-        const configPath = path.join(__dirname, '../../podcast_data/config.json');
+        const configPath = configFile;
         if (fs.existsSync(configPath)) {
             const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
             return config;
@@ -128,5 +134,6 @@ module.exports = {
   saveConfig,
   getFileHash,
   saveSubtitleCache,
-  loadSubtitleCache
+  loadSubtitleCache,
+  getPodcastDataPath
 };
