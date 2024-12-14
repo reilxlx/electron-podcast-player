@@ -16,7 +16,8 @@
       "target": [
         "dmg",
         "zip"
-      ]
+      ],
+      "icon": "build/app_icon.icns"
     },
     "files": [
       "**/*",
