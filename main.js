@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { 
   loadAudioIndex, saveAudioIndex, getFileHash, 
-  loadConfig, saveConfig, saveSubtitleCache, loadSubtitleCache 
+  loadConfig, saveConfig, saveSubtitleCache, loadSubtitleCache, setSiliconCloudModel 
 } = require('./src/services/fileService');
 const { transcribeAudio } = require('./src/services/transcriptionService');
 const { translateTextBatch } = require('./src/services/translationService');
@@ -221,6 +221,30 @@ ipcMain.handle('get-silicon-cloud-api-key', async () => {
       return '';
   }
 });
+
+ipcMain.handle('get-silicon-cloud-model', async () => {
+    try {
+        const config = loadConfig();
+        return config.silicon_cloud_model || 'Qwen/Qwen2.5-7B-Instruct';
+    } catch (error) {
+        console.error('获取SiliconCloud模型失败:', error);
+        return 'Qwen/Qwen2.5-7B-Instruct';
+    }
+});
+
+ipcMain.handle('set-silicon-cloud-model', async (event, { translator, model }) => {
+    try {
+        if (translator === 'silicon_cloud') {
+            setSiliconCloudModel(model);
+            return { success: true };
+        }
+        throw new Error('不支持的翻译器类型');
+    } catch (error) {
+        console.error('设置SiliconCloud模型失败:', error);
+        return { success: false, message: error.message };
+    }
+});
+
 // 在 createWindow 函数开始处添加
 process.on('uncaughtException', (error) => {
   console.error('未捕获的异常:', error);

@@ -35,5 +35,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
     return () => ipcRenderer.removeAllListeners('audio-index-updated');
   },
 
-  getSubtitleFilePath: (hash) => ipcRenderer.invoke('get-subtitle-filepath', hash)
+  getSubtitleFilePath: (hash) => ipcRenderer.invoke('get-subtitle-filepath', hash),
+  getSiliconCloudModel: () => ipcRenderer.invoke('get-silicon-cloud-model'),
+  setSiliconCloudModel: (translator, model) => ipcRenderer.invoke('set-silicon-cloud-model', { translator, model })
 });

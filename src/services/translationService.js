@@ -1,4 +1,5 @@
 const fetch = require('node-fetch');
+const { loadConfig } = require('./fileService');
 
 /**
  * Google 翻译实现
@@ -66,7 +67,11 @@ async function googleTranslate(text, dest_lang = 'zh-cn', src_lang = 'auto') {
  * @param {number} timeout 超时时间（毫秒）
  * @returns {Promise<string>} 翻译后的文本
  */
-async function siliconCloudTranslate(text, api_key, base_url = 'https://api.siliconflow.cn/v1', model = 'Qwen/Qwen2.5-7B-Instruct', timeout = 30000) {
+async function siliconCloudTranslate(text, api_key, base_url = 'https://api.siliconflow.cn/v1', timeout = 30000) {
+  // 获取配置中的模型名称
+  const config = loadConfig();
+  const model = config.silicon_cloud_model || 'Qwen/Qwen2.5-7B-Instruct';
+
   // 检查文本是否为空
   if (!text) {
     console.log(`[翻译] 警告: 收到空文本`);

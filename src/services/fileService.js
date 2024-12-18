@@ -33,17 +33,29 @@ function saveAudioIndex(index) {
   fs.writeFileSync(audioIndexFile, JSON.stringify(index, null, 2), 'utf-8');
 }
 
+const defaultConfig = {
+    // ... 现有配置项 ...
+    silicon_cloud_model: 'Qwen/Qwen2.5-7B-Instruct' // 添加默认模型
+};
+
+// 修改 loadConfig 以包含默认模型
 const loadConfig = () => {
     try {
         const configPath = configFile;
         if (fs.existsSync(configPath)) {
             const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+            // 如果没有silicon_cloud_model，则设置默认值
+            if (!config.silicon_cloud_model) {
+                config.silicon_cloud_model = defaultConfig.silicon_cloud_model;
+                saveConfig(config);
+            }
             return config;
         }
-        return {};
+        // 如果配置文件不存在，返回默认配置
+        return { ...defaultConfig };
     } catch (error) {
         console.error('加载配置文件失败:', error);
-        return {};
+        return { ...defaultConfig };
     }
 };
 
@@ -127,6 +139,18 @@ const loadSubtitleCache = (fileHash) => {
     }
 };
 
+// 添加设置模型的函数
+function setSiliconCloudModel(newModel) {
+    try {
+        const config = loadConfig();
+        config.silicon_cloud_model = newModel;
+        saveConfig(config);
+    } catch (error) {
+        console.error('设置SiliconCloud模型失败:', error);
+        throw error;
+    }
+}
+
 module.exports = {
   loadAudioIndex,
   saveAudioIndex,
@@ -135,5 +159,6 @@ module.exports = {
   getFileHash,
   saveSubtitleCache,
   loadSubtitleCache,
-  getPodcastDataPath
+  getPodcastDataPath,
+  setSiliconCloudModel // 导出新函数
 };

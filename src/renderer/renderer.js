@@ -83,6 +83,14 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
         });
     });
+
+    // 添加右键菜单监听器到SiliconCloud按钮
+    const siliconCloudPill = document.querySelector('.option-pill[data-translator="silicon_cloud"]');
+    
+    siliconCloudPill.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showModelContextMenu(e, 'silicon_cloud');
+    });
 });
 
 function updateFileList(audioIndex) {
@@ -845,7 +853,7 @@ function updateTranslationProgress(current, total, detail = '') {
     }
 }
 
-// 清除翻译进度显示
+// 清除��译进度显示
 function clearTranslationProgress() {
     const subtitleDisplay = document.getElementById('subtitle-display');
     if (!subtitleDisplay) return;
@@ -856,7 +864,7 @@ function clearTranslationProgress() {
     }
 }
 
-// 修改进度事件监听器
+// 修改进度事件监��器
 window.electronAPI.onTranslationProgress((data) => {
     console.log('[渲染进程] 收到进度更新:', data);
     if (!translationInProgress) return;
@@ -868,3 +876,123 @@ window.electronAPI.onTranslationProgress((data) => {
         text ? `当前翻译：${text.substring(0, 30)}${text.length > 30 ? '...' : ''}` : ''
     );
 });
+
+// 显示设置模型的上下文菜单
+function showModelContextMenu(event, translator) {
+    // 移除已存在的上下文菜单
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+
+    // 添加“设置模型”选项
+    const setModelBtn = document.createElement('button');
+    setModelBtn.className = 'context-menu-item';
+    setModelBtn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M2 2L10 10M2 10L10 2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span>设置模型</span>
+    `;
+
+    setModelBtn.addEventListener('click', () => {
+        menu.remove();
+        openSetModelModal(translator);
+    });
+
+    menu.appendChild(setModelBtn);
+    document.body.appendChild(menu);
+
+    // 设置菜单位置
+    const x = event.clientX;
+    const y = event.clientY;
+
+    // 确保菜单不会超出窗口边界
+    const menuRect = menu.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let menuX = x;
+    let menuY = y;
+
+    if (x + menuRect.width > windowWidth) {
+        menuX = windowWidth - menuRect.width;
+    }
+
+    if (y + menuRect.height > windowHeight) {
+        menuY = windowHeight - menuRect.height;
+    }
+
+    menu.style.left = `${menuX}px`;
+    menu.style.top = `${menuY}px`;
+
+    // 点击其他区域关闭菜单
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+
+    setTimeout(() => {
+        document.addEventListener('click', closeMenu);
+    }, 0);
+}
+
+// 打开设置模型的模态窗口
+function openSetModelModal(translator) {
+    const existingModal = document.querySelector('.macos-alert');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'macos-alert';
+    modal.innerHTML = `
+        <div class="macos-alert-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+                <path d="M12 2L12 22M17 17L7 7" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">设置SiliconCloud模型</p>
+            <input type="text" id="model-input" class="macos-alert-input" placeholder="输入模型名称">
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" id="save-model-button">保存</button>
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 获取当前模型名称并填充到输入框中
+    window.electronAPI.getSiliconCloudModel().then(model => {
+        const modelInput = document.getElementById('model-input');
+        if (model) {
+            modelInput.value = model;
+        }
+    }).catch(error => {
+        console.error('获取当前模型名称失败:', error);
+    });
+
+    // 处理保存按钮点击
+    const saveButton = document.getElementById('save-model-button');
+    saveButton.addEventListener('click', async () => {
+        const modelInput = document.getElementById('model-input').value.trim();
+        if (modelInput) {
+            try {
+                await window.electronAPI.setSiliconCloudModel(translator, modelInput);
+                modal.remove();
+                alert('模型名称已保存');
+            } catch (error) {
+                console.error('保存模型失败:', error);
+                alert('保存模型失败，请重试');
+            }
+        } else {
+            alert('模型名称不能为空');
+        }
+    });
+}
