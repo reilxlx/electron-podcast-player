@@ -736,8 +736,9 @@ audio {
     margin-bottom: 16px;
 }
 
-.macos-alert-icon svg {
+.macos-alert-icon img {
     color: var(--primary-color);
+    object-fit: contain;
 }
 
 .macos-alert-message {

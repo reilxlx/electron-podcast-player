@@ -853,7 +853,7 @@ function updateTranslationProgress(current, total, detail = '') {
     }
 }
 
-// 清除��译进度显示
+// 清除翻译进度显示
 function clearTranslationProgress() {
     const subtitleDisplay = document.getElementById('subtitle-display');
     if (!subtitleDisplay) return;
@@ -864,7 +864,7 @@ function clearTranslationProgress() {
     }
 }
 
-// 修改进度事件监��器
+// 修改进度事件监听器
 window.electronAPI.onTranslationProgress((data) => {
     console.log('[渲染进程] 收到进度更新:', data);
     if (!translationInProgress) return;
@@ -953,9 +953,7 @@ function openSetModelModal(translator) {
     modal.className = 'macos-alert';
     modal.innerHTML = `
         <div class="macos-alert-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M12 2L12 22M17 17L7 7" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
         </div>
         <div class="macos-alert-message">
             <p class="macos-alert-title">设置SiliconCloud模型</p>
