@@ -143,19 +143,11 @@ body {
 }
 
 .api-key-input {
-  background-color: var(--hover-color);
-  border: none;
-  border-radius: 6px;
-  padding: 8px 12px;
-  font-size: 13px;
-  width: 200px;
-  transition: background-color var(--transition-speed) ease, box-shadow var(--transition-speed) ease;
+  display: none;
 }
 
-.api-key-input:focus {
-  background-color: var(--background-color);
-  box-shadow: 0 0 0 2px var(--primary-color);
-  outline: none;
+.api-key-wrapper {
+  display: none;
 }
 
 .actions {
@@ -532,10 +524,10 @@ audio {
 .context-menu-item {
     display: flex;
     align-items: center;
-    padding: 4px 8px;
+    padding: 6px 12px;
     margin: 2px;
     font-size: 13px;
-    color: #000000;
+    color: var(--text-primary);
     border-radius: 4px;
     cursor: default;
     background: transparent;
@@ -800,4 +792,17 @@ audio {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
+}
+
+/* 菜单图标样式 */
+.menu-icon {
+    width: 14px;
+    height: 14px;
+    margin-right: 8px;
+    opacity: 0.7;
+    flex-shrink: 0;
+}
+
+.context-menu-item:hover .menu-icon {
+    opacity: 1;
 }

@@ -59,8 +59,37 @@ const loadConfig = () => {
     }
 };
 
-function saveConfig(config) {
-  fs.writeFileSync(configFile, JSON.stringify(config, null, 2), 'utf-8');
+// 修改 saveConfig 函数，使其只更新指定的字段
+function saveConfig(newConfig) {
+  try {
+    // 读取现有配置
+    let currentConfig = {};
+    if (fs.existsSync(configFile)) {
+      currentConfig = JSON.parse(fs.readFileSync(configFile, 'utf-8'));
+    }
+
+    // 只更新提供的字段，保留其他现有字段
+    const updatedConfig = {
+      ...currentConfig,
+      ...Object.fromEntries(
+        Object.entries(newConfig).filter(([key]) => 
+          // 只允许更新特定字段
+          ['silicon_cloud_api_key', 'silicon_cloud_model'].includes(key)
+        )
+      )
+    };
+
+    // 确保 asr_api_key 不被删除
+    if (currentConfig.asr_api_key) {
+      updatedConfig.asr_api_key = currentConfig.asr_api_key;
+    }
+
+    fs.writeFileSync(configFile, JSON.stringify(updatedConfig, null, 2), 'utf-8');
+    return updatedConfig;
+  } catch (error) {
+    console.error('保存配置文件失败:', error);
+    throw error;
+  }
 }
 
 async function getFileHash(filePath) {
@@ -139,16 +168,32 @@ const loadSubtitleCache = (fileHash) => {
     }
 };
 
-// 添加设置模型的函数
+// 修改 setSiliconCloudModel 函数，只更新模型字段
 function setSiliconCloudModel(newModel) {
-    try {
-        const config = loadConfig();
-        config.silicon_cloud_model = newModel;
-        saveConfig(config);
-    } catch (error) {
-        console.error('设置SiliconCloud模型失败:', error);
-        throw error;
-    }
+  try {
+    const currentConfig = loadConfig();
+    return saveConfig({
+      ...currentConfig,
+      silicon_cloud_model: newModel
+    });
+  } catch (error) {
+    console.error('设置SiliconCloud模型失败:', error);
+    throw error;
+  }
+}
+
+// 添加一个专门用于设置 API Key 的函数
+function setSiliconCloudApiKey(apiKey) {
+  try {
+    const currentConfig = loadConfig();
+    return saveConfig({
+      ...currentConfig,
+      silicon_cloud_api_key: apiKey
+    });
+  } catch (error) {
+    console.error('设置SiliconCloud API Key失败:', error);
+    throw error;
+  }
 }
 
 module.exports = {
@@ -160,5 +205,6 @@ module.exports = {
   saveSubtitleCache,
   loadSubtitleCache,
   getPodcastDataPath,
-  setSiliconCloudModel // 导出新函数
+  setSiliconCloudModel,  // 导出新函数
+  setSiliconCloudApiKey,  // 导出新函数
 };

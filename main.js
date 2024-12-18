@@ -2,7 +2,7 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { 
   loadAudioIndex, saveAudioIndex, getFileHash, 
-  loadConfig, saveConfig, saveSubtitleCache, loadSubtitleCache, setSiliconCloudModel 
+  loadConfig, saveConfig, saveSubtitleCache, loadSubtitleCache, setSiliconCloudModel, setSiliconCloudApiKey 
 } = require('./src/services/fileService');
 const { transcribeAudio } = require('./src/services/transcriptionService');
 const { translateTextBatch } = require('./src/services/translationService');
@@ -18,10 +18,11 @@ const isDev = process.env.NODE_ENV === 'development';
 
 // 获取 podcast_data 文件夹的路径
 const getPodcastDataPath = () => {
-  if (isDev) {
+  if (process.env.NODE_ENV === 'development' || !app.isPackaged) {
     return path.join(__dirname, 'podcast_data');
+  } else {
+    return path.join(process.resourcesPath, 'podcast_data');
   }
-  return path.join(process.resourcesPath, 'podcast_data');
 };
 
 async function createWindow() {
@@ -155,9 +156,21 @@ async function createWindow() {
     return loadSubtitleCache(fileHash);
   });
 
-  ipcMain.handle('save-config', (event, newConfig) => {
-    config = newConfig;
-    saveConfig(config);
+  ipcMain.handle('save-config', async (event, newConfig) => {
+    try {
+      // 如果是设置 API Key
+      if (newConfig.hasOwnProperty('silicon_cloud_api_key')) {
+        return await setSiliconCloudApiKey(newConfig.silicon_cloud_api_key);
+      }
+      // 如果是设置模型
+      if (newConfig.hasOwnProperty('silicon_cloud_model')) {
+        return await setSiliconCloudModel(newConfig.silicon_cloud_model);
+      }
+      return config;
+    } catch (error) {
+      console.error('保存配置失败:', error);
+      throw error;
+    }
   });
 
   ipcMain.handle('select-audio-file', async () => {
@@ -213,12 +226,34 @@ async function createWindow() {
 // 添加IPC处理器
 ipcMain.handle('get-silicon-cloud-api-key', async () => {
   try {
-      const configPath = path.join(__dirname, '../../podcast_data/config.json');
-      const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
-      return config.silicon_cloud_api_key || '';
-  } catch (error) {
-      console.error('获取API Key失败:', error);
+    const configPath = path.join(getPodcastDataPath(), 'config.json');
+    
+    // 检查文件是否存在
+    if (!fs.existsSync(configPath)) {
+      console.warn('配置文件不存在，将创建默认配置');
+      // 创建默认配置
+      const defaultConfig = {
+        silicon_cloud_api_key: '',
+        asr_api_key: '',
+        silicon_cloud_model: 'Qwen/Qwen2.5-7B-Instruct'
+      };
+      
+      // 确保目录存在
+      const configDir = path.dirname(configPath);
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
+      }
+      
+      // 写入默认配置
+      fs.writeFileSync(configPath, JSON.stringify(defaultConfig, null, 2));
       return '';
+    }
+    
+    const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    return config.silicon_cloud_api_key || '';
+  } catch (error) {
+    console.error('获取API Key失败:', error);
+    return '';
   }
 });
 

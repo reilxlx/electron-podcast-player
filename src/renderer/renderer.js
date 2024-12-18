@@ -400,7 +400,7 @@ function hideTooltip() {
 }
 
 async function loadHistoryFile(hash, info) {
-    // 先移除其他项的 active 类
+    // 先移���其他项的 active 类
     document.querySelectorAll('.history-item').forEach(item => {
         item.classList.remove('active');
     });
@@ -727,41 +727,21 @@ ipcRenderer.on('update-subtitles', (event, data) => {
 
 async function initTranslatorSelection() {
     const pills = document.querySelectorAll('.option-pill');
-    const apiKeyInput = document.getElementById('api-key-input');
-
     const googlePill = document.querySelector('[data-translator="google"]');
     googlePill.classList.add('active');
-    apiKeyInput.type = 'text';  
-    apiKeyInput.value = 'Google翻译无需API Key';
-    apiKeyInput.disabled = true;
 
     pills.forEach(pill => {
         pill.addEventListener('click', async () => {
             pills.forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
-            
-            const translator = pill.getAttribute('data-translator');
-            await updateApiKeyInput(translator);
         });
-    });
 
-    apiKeyInput.addEventListener('mouseenter', () => {
-        if (apiKeyInput.disabled) return;
-        
-        apiKeyInputTimeout = setTimeout(async () => {
-            const config = await window.electronAPI.getConfig();
-            if (config && config.silicon_cloud_api_key) {
-                apiKeyInput.type = 'text';
-                apiKeyInput.value = config.silicon_cloud_api_key;
-            }
-        }, 1000);
-    });
-
-    apiKeyInput.addEventListener('mouseleave', () => {
-        clearTimeout(apiKeyInputTimeout);
-        if (!apiKeyInput.disabled) {
-            apiKeyInput.type = 'password';
-            apiKeyInput.value = '*'.repeat(40);
+        // 为 SiliconCloud 按钮添加右键菜单
+        if (pill.getAttribute('data-translator') === 'silicon_cloud') {
+            pill.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                showModelContextMenu(e, 'silicon_cloud');
+            });
         }
     });
 }
@@ -773,8 +753,9 @@ async function updateApiKeyInput(translator) {
         apiKeyInput.value = 'Google翻译无需API Key';
         apiKeyInput.disabled = true;
     } else if (translator === 'silicon_cloud') {
-        apiKeyInput.type = 'password';
-        apiKeyInput.value = '*'.repeat(40);
+        apiKeyInput.type = 'text';  // 改为 text 类型
+        const config = await window.electronAPI.getConfig();
+        apiKeyInput.value = config.silicon_cloud_api_key || '';  // 直接显示 API Key
         apiKeyInput.disabled = false;
     }
 }
@@ -879,6 +860,8 @@ window.electronAPI.onTranslationProgress((data) => {
 
 // 显示设置模型的上下文菜单
 function showModelContextMenu(event, translator) {
+    event.preventDefault(); // 阻止默认右键菜单
+
     // 移除已存在的上下文菜单
     const existingMenu = document.querySelector('.context-menu');
     if (existingMenu) {
@@ -888,12 +871,17 @@ function showModelContextMenu(event, translator) {
     const menu = document.createElement('div');
     menu.className = 'context-menu';
 
-    // 添加“设置模型”选项
+    // 添加"设置模型"选项，使用更简约的图标
     const setModelBtn = document.createElement('button');
     setModelBtn.className = 'context-menu-item';
     setModelBtn.innerHTML = `
-        <svg width="12" height="12" viewBox="0 0 12 12">
-            <path d="M2 2L10 10M2 10L10 2" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg class="menu-icon" viewBox="0 0 16 16">
+            <path d="M13.5 8.5l-1.5 1.5-2-2L8.5 9.5l-2-2L5 9 3.5 7.5m7-3.5h3m-3 7h3m-12-7h3m-3 7h3m4-10v13" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-width="1.2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
         </svg>
         <span>设置模型</span>
     `;
@@ -903,10 +891,32 @@ function showModelContextMenu(event, translator) {
         openSetModelModal(translator);
     });
 
+    // 添加"设置API Key"选项，使用更简约的图标
+    const setApiKeyBtn = document.createElement('button');
+    setApiKeyBtn.className = 'context-menu-item';
+    setApiKeyBtn.innerHTML = `
+        <svg class="menu-icon" viewBox="0 0 16 16">
+            <path d="M8 1v14M4 5l4-4 4 4M4 11h8" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-width="1.2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>设置API Key</span>
+    `;
+
+    setApiKeyBtn.addEventListener('click', () => {
+        menu.remove();
+        openSetApiKeyModal(translator);
+    });
+
     menu.appendChild(setModelBtn);
+    menu.appendChild(setApiKeyBtn);
     document.body.appendChild(menu);
 
     // 设置菜单位置
+    const rect = event.target.getBoundingClientRect();
     const x = event.clientX;
     const y = event.clientY;
 
@@ -937,9 +947,10 @@ function showModelContextMenu(event, translator) {
         }
     };
 
-    setTimeout(() => {
+    // 使用 requestAnimationFrame 确保菜单先显示再添加点击监听
+    requestAnimationFrame(() => {
         document.addEventListener('click', closeMenu);
-    }, 0);
+    });
 }
 
 // 打开设置模型的模态窗口
@@ -991,6 +1002,61 @@ function openSetModelModal(translator) {
             }
         } else {
             alert('模型名称不能为空');
+        }
+    });
+}
+
+// 修改打开设置API Key的模态窗口函数
+function openSetApiKeyModal(translator) {
+    const existingModal = document.querySelector('.macos-alert');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'macos-alert';
+    modal.innerHTML = `
+        <div class="macos-alert-icon">
+            <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">设置SiliconCloud API Key</p>
+            <input type="text" id="api-key-input" class="macos-alert-input" placeholder="输入API Key">
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" id="save-api-key-button">保存</button>
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 获取当前API Key并填充到输入框中
+    window.electronAPI.getSiliconCloudApiKey().then(apiKey => {
+        const apiKeyInput = document.getElementById('api-key-input');
+        if (apiKey) {
+            apiKeyInput.value = apiKey;  // 直接显示 API Key
+        }
+    }).catch(error => {
+        console.error('获取当前API Key失败:', error);
+    });
+
+    // 处理保存按钮点击
+    const saveButton = document.getElementById('save-api-key-button');
+    saveButton.addEventListener('click', async () => {
+        const apiKeyInput = document.getElementById('api-key-input').value.trim();
+        if (apiKeyInput) {
+            try {
+                await window.electronAPI.saveConfig({
+                    silicon_cloud_api_key: apiKeyInput
+                });
+                modal.remove();
+                alert('API Key已保存');
+            } catch (error) {
+                console.error('保存API Key失败:', error);
+                alert('保存API Key失败，请重试');
+            }
+        } else {
+            alert('API Key不能为空');
         }
     });
 }

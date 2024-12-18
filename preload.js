@@ -15,7 +15,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   transcribeAudio: (fileInfo) => ipcRenderer.invoke('transcribe-audio', fileInfo),
   translateSubtitles: (params) => ipcRenderer.invoke('translate-subtitles', params),
   loadCachedData: (fileHash) => ipcRenderer.invoke('load-cached-data', fileHash),
-  saveConfig: (newConfig) => ipcRenderer.invoke('save-config', newConfig),
+  saveConfig: (config) => ipcRenderer.invoke('save-config', config),
 
   selectAudioFile: () => ipcRenderer.invoke('select-audio-file'),
   getSiliconCloudApiKey: () => ipcRenderer.invoke('get-silicon-cloud-api-key'),
