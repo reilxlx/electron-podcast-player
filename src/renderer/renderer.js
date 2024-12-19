@@ -400,7 +400,7 @@ function hideTooltip() {
 }
 
 async function loadHistoryFile(hash, info) {
-    // 先移���其他项的 active 类
+    // 先移除其他项的 active 类
     document.querySelectorAll('.history-item').forEach(item => {
         item.classList.remove('active');
     });
@@ -736,11 +736,17 @@ async function initTranslatorSelection() {
             pill.classList.add('active');
         });
 
-        // 为 SiliconCloud 按钮添加右键菜单
-        if (pill.getAttribute('data-translator') === 'silicon_cloud') {
+        // 为 SiliconCloud 和 AssemblyAI 按钮添加右键菜单
+        if (pill.getAttribute('data-translator') === 'silicon_cloud' || 
+            pill.getAttribute('data-translator') === 'assembly_ai') {
             pill.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                showModelContextMenu(e, 'silicon_cloud');
+                const translator = pill.getAttribute('data-translator');
+                if (translator === 'assembly_ai') {
+                    openSetAssemblyAIKeyModal();
+                } else {
+                    showModelContextMenu(e, translator);
+                }
             });
         }
     });
@@ -1054,6 +1060,68 @@ function openSetApiKeyModal(translator) {
             } catch (error) {
                 console.error('保存API Key失败:', error);
                 alert('保存API Key失败，请重试');
+            }
+        } else {
+            alert('API Key不能为空');
+        }
+    });
+}
+
+// 添加 AssemblyAI API Key 设置模态窗口函数
+function openSetAssemblyAIKeyModal() {
+    const existingModal = document.querySelector('.macos-alert');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'macos-alert';
+    modal.innerHTML = `
+        <div class="macos-alert-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
+                      stroke="currentColor" 
+                      fill="none" 
+                      stroke-width="1.5" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">设置AssemblyAI API Key</p>
+            <input type="text" id="asr-key-input" class="macos-alert-input" placeholder="输入API Key">
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" id="save-asr-key-button">保存</button>
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 获取当前ASR API Key并填充到输入框中
+    window.electronAPI.getConfig().then(config => {
+        const asrKeyInput = document.getElementById('asr-key-input');
+        if (config && config.asr_api_key) {
+            asrKeyInput.value = config.asr_api_key;
+        }
+    }).catch(error => {
+        console.error('获取当前ASR API Key失败:', error);
+    });
+
+    // 处理保存按钮点击
+    const saveButton = document.getElementById('save-asr-key-button');
+    saveButton.addEventListener('click', async () => {
+        const asrKeyInput = document.getElementById('asr-key-input').value.trim();
+        if (asrKeyInput) {
+            try {
+                await window.electronAPI.saveConfig({
+                    asr_api_key: asrKeyInput
+                });
+                modal.remove();
+                alert('ASR API Key已保存');
+            } catch (error) {
+                console.error('保存ASR API Key失败:', error);
+                alert('保存ASR API Key失败，请重试');
             }
         } else {
             alert('API Key不能为空');

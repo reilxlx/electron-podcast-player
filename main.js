@@ -166,6 +166,24 @@ async function createWindow() {
       if (newConfig.hasOwnProperty('silicon_cloud_model')) {
         return await setSiliconCloudModel(newConfig.silicon_cloud_model);
       }
+      // 如果是设置 ASR API Key
+      if (newConfig.hasOwnProperty('asr_api_key')) {
+        const configPath = path.join(getPodcastDataPath(), 'config.json');
+        let currentConfig = {};
+        
+        // 读取现有配置
+        if (fs.existsSync(configPath)) {
+          currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        }
+        
+        // 更新配置
+        currentConfig.asr_api_key = newConfig.asr_api_key;
+        
+        // 保存配置
+        fs.writeFileSync(configPath, JSON.stringify(currentConfig, null, 2));
+        config = currentConfig; // 更新内存中的配置
+        return config;
+      }
       return config;
     } catch (error) {
       console.error('保存配置失败:', error);
