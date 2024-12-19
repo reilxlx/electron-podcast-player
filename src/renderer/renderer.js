@@ -1078,14 +1078,7 @@ function openSetAssemblyAIKeyModal() {
     modal.className = 'macos-alert';
     modal.innerHTML = `
         <div class="macos-alert-icon">
-            <svg width="24" height="24" viewBox="0 0 24 24">
-                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" 
-                      stroke="currentColor" 
-                      fill="none" 
-                      stroke-width="1.5" 
-                      stroke-linecap="round" 
-                      stroke-linejoin="round"/>
-            </svg>
+            <img src="assets/assemblyai.png" width="24" height="24" alt="AssemblyAI Logo">
         </div>
         <div class="macos-alert-message">
             <p class="macos-alert-title">设置AssemblyAI API Key</p>
