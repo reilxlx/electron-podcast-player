@@ -494,7 +494,7 @@ function displaySubtitles(subtitles, translations, showTranslation) {
     const container = document.createElement('div');
     container.className = 'subtitle-container';
     subtitleDisplay.appendChild(container);
-    
+
     if (!Array.isArray(subtitles)) {
         console.error('[渲染进程] 字幕数据不是数组:', subtitles);
         container.innerHTML = `

@@ -798,3 +798,24 @@ audio {
 .context-menu-item:hover .menu-icon {
     opacity: 1;
 }
+
+/* 字幕容器滚动条样式 */
+.subtitle-container::-webkit-scrollbar {
+    width: 6px;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+.subtitle-container::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.subtitle-container::-webkit-scrollbar-thumb {
+    background-color: rgba(153, 153, 165, 0.3);
+    border-radius: 3px;
+    transition: background-color 0.3s ease;
+}
+
+.subtitle-container::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(153, 153, 165, 0.5);
+}
