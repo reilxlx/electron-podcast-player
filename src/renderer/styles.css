@@ -142,14 +142,6 @@ body {
   color: white;
 }
 
-.api-key-input {
-  display: none;
-}
-
-.api-key-wrapper {
-  display: none;
-}
-
 .actions {
   display: flex;
   align-items: center;

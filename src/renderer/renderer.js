@@ -400,6 +400,8 @@ function hideTooltip() {
 }
 
 async function loadHistoryFile(hash, info) {
+    console.log('[渲染进程] 开始载历史文件:', { hash, info });
+    
     // 先移除其他项的 active 类
     document.querySelectorAll('.history-item').forEach(item => {
         item.classList.remove('active');
@@ -413,16 +415,22 @@ async function loadHistoryFile(hash, info) {
     
     try {
         currentFileHash = hash;
-        
+        console.log('[渲染进程] 设置音频源:', info.file_path);
         audioPlayer.src = info.file_path;
 
+        console.log('[渲染进程] 加载缓存数据...');
         const cachedData = await window.electronAPI.loadCachedData(hash);
+        console.log('[渲染进程] 缓存数据:', cachedData);
+        
         if (cachedData) {
+            console.log('[渲染进程] 解析缓存数据...');
             subtitles = cachedData.subtitles;
             translations = cachedData.translations || {};
             
             // 检查是否有翻译数据
             const hasTranslations = translations && Object.keys(translations).length > 0;
+            console.log('[渲染进程] 是否有翻译:', hasTranslations);
+            
             const translationToggle = document.getElementById('show-translation');
             translationToggle.disabled = !hasTranslations;
             
@@ -435,23 +443,50 @@ async function loadHistoryFile(hash, info) {
             if (hasTranslations) {
                 const firstTranslation = Object.values(translations)[0];
                 const translator = firstTranslation ? firstTranslation.translator : 'google';
+                console.log('[渲染进程] 设置翻译器:', translator);
                 await setTranslatorFromHistory(translator);
             }
             
+            console.log('[渲染进程] 显示字幕...');
             displaySubtitles(subtitles, translations, showTranslation);
             
             // 重新触发一次时间更新，确保字幕高亮状态正确
             if (audioPlayer.currentTime > 0) {
                 onTimeUpdate();
             }
+        } else {
+            console.error('[渲染进程] 未找到缓存数据');
+            const subtitleDisplay = document.getElementById('subtitle-display');
+            subtitleDisplay.innerHTML = `
+                <div class="error-message">
+                    <p>加载字幕失败: 未找到缓存数据</p>
+                </div>
+            `;
         }
     } catch (error) {
-        console.error('加载历史文件失败:', error);
+        console.error('[渲染进程] 加载历史文件失败:', error);
+        const subtitleDisplay = document.getElementById('subtitle-display');
+        subtitleDisplay.innerHTML = `
+            <div class="error-message">
+                <p>加载字幕失败: ${error.message}</p>
+            </div>
+        `;
     }
 }
 
 function displaySubtitles(subtitles, translations, showTranslation) {
+    console.log('[渲染进程] 开始显示字幕:', {
+        subtitlesLength: subtitles ? subtitles.length : 0,
+        hasTranslations: !!translations,
+        showTranslation
+    });
+
     const subtitleDisplay = document.getElementById('subtitle-display');
+    if (!subtitleDisplay) {
+        console.error('[渲染进程] 未找到字幕显示区域元素');
+        return;
+    }
+
     subtitleDisplay.innerHTML = '';
     wordPositions = [];
     currentSubtitleIndex = -1;  // 重置当前字幕索引
@@ -460,55 +495,95 @@ function displaySubtitles(subtitles, translations, showTranslation) {
     container.className = 'subtitle-container';
     subtitleDisplay.appendChild(container);
     
+    if (!Array.isArray(subtitles)) {
+        console.error('[渲染进程] 字幕数据不是数组:', subtitles);
+        container.innerHTML = `
+            <div class="error-message">
+                <p>字幕数据格式错误</p>
+            </div>
+        `;
+        return;
+    }
+    
     subtitles.forEach((subtitle, index) => {
+        console.log(`[渲染进程] 处理字幕 ${index}:`, subtitle);
+        
+        if (!subtitle || typeof subtitle !== 'object') {
+            console.error(`[渲染进程] 字幕对象 ${index} 无效:`, subtitle);
+            return;
+        }
+
         const subtitleBlock = document.createElement('div');
         subtitleBlock.className = 'subtitle-block';
         subtitleBlock.setAttribute('data-index', index);
-        subtitleBlock.setAttribute('data-speaker', subtitle.speaker);
+        
+        if (subtitle.speaker) {
+            subtitleBlock.setAttribute('data-speaker', subtitle.speaker);
+        }
         
         // 检查当前时间，如果在这个字幕的时间范围内，则添加active类
-        if (audioPlayer && audioPlayer.currentTime * 1000 >= subtitle.start_time 
-            && audioPlayer.currentTime * 1000 <= subtitle.end_time) {
+        if (audioPlayer && 
+            typeof subtitle.start_time === 'number' && 
+            typeof subtitle.end_time === 'number' && 
+            audioPlayer.currentTime * 1000 >= subtitle.start_time && 
+            audioPlayer.currentTime * 1000 <= subtitle.end_time) {
             subtitleBlock.classList.add('active');
             currentSubtitleIndex = index;
         }
         
         subtitleBlock.addEventListener('click', () => {
-            const startTime = subtitle.start_time / 1000;
-            if (audioPlayer) {
-                audioPlayer.currentTime = startTime;
-                audioPlayer.play().catch(error => console.error('播放失败:', error));
+            if (typeof subtitle.start_time === 'number') {
+                const startTime = subtitle.start_time / 1000;
+                if (audioPlayer) {
+                    audioPlayer.currentTime = startTime;
+                    audioPlayer.play().catch(error => console.error('[渲染进程] 播放失败:', error));
+                }
             }
         });
         
         const originalText = document.createElement('div');
         originalText.className = 'original-text';
         
-        subtitle.words.forEach((word, wordIndex) => {
-            const wordSpan = document.createElement('span');
-            wordSpan.className = 'word';
-            wordSpan.textContent = word.text;
-            wordSpan.setAttribute('data-start-time', word.start);
-            wordSpan.setAttribute('data-end-time', word.end);
-            
-            wordPositions.push({
-                element: wordSpan,
-                startTime: word.start,
-                endTime: word.end
+        if (Array.isArray(subtitle.words)) {
+            subtitle.words.forEach((word, wordIndex) => {
+                if (!word || typeof word !== 'object') {
+                    console.error(`[渲染进程] 单词对象无效:`, word);
+                    return;
+                }
+
+                const wordSpan = document.createElement('span');
+                wordSpan.className = 'word';
+                wordSpan.textContent = word.text || '';
+                
+                if (typeof word.start === 'number') {
+                    wordSpan.setAttribute('data-start-time', word.start);
+                }
+                if (typeof word.end === 'number') {
+                    wordSpan.setAttribute('data-end-time', word.end);
+                }
+                
+                wordPositions.push({
+                    element: wordSpan,
+                    startTime: word.start,
+                    endTime: word.end
+                });
+                
+                originalText.appendChild(wordSpan);
+                if (wordIndex < subtitle.words.length - 1) {
+                    originalText.appendChild(document.createTextNode(' '));
+                }
             });
-            
-            originalText.appendChild(wordSpan);
-            if (wordIndex < subtitle.words.length - 1) {
-                originalText.appendChild(document.createTextNode(' '));
-            }
-        });
+        } else {
+            console.error(`[渲染进程] 字幕 ${index} 没有有效的words数组:`, subtitle);
+            originalText.textContent = subtitle.text || '';
+        }
         
         subtitleBlock.appendChild(originalText);
         
         if (translations && translations[index]) {
             const translationText = document.createElement('div');
             translationText.className = 'translation-text';
-            translationText.textContent = translations[index].text;
+            translationText.textContent = translations[index].text || '';
             if (!showTranslation) {
                 translationText.classList.add('hidden');
             }
@@ -753,17 +828,8 @@ async function initTranslatorSelection() {
 }
 
 async function updateApiKeyInput(translator) {
-    const apiKeyInput = document.getElementById('api-key-input');
-    if (translator === 'google') {
-        apiKeyInput.type = 'text';
-        apiKeyInput.value = 'Google翻译无需API Key';
-        apiKeyInput.disabled = true;
-    } else if (translator === 'silicon_cloud') {
-        apiKeyInput.type = 'text';  // 改为 text 类型
-        const config = await window.electronAPI.getConfig();
-        apiKeyInput.value = config.silicon_cloud_api_key || '';  // 直接显示 API Key
-        apiKeyInput.disabled = false;
-    }
+    // 由于移除了输入框，这个函数现在不需要做任何事情
+    return;
 }
 
 async function setTranslatorFromHistory(translator) {
@@ -775,8 +841,6 @@ async function setTranslatorFromHistory(translator) {
     if (targetPill) {
         targetPill.classList.add('active');
     }
-    
-    await updateApiKeyInput(translator);
 }
 
 // 创建翻译进度显示区域

@@ -148,20 +148,53 @@ const loadSubtitleCache = (fileHash) => {
     console.log(`[文件服务] 尝试加载字幕缓存，文件哈希: ${fileHash}`);
     try {
         const subtitlePath = path.join(subtitleCacheDir, `${fileHash}.json`);
-        if (fs.existsSync(subtitlePath)) {
-            const data = JSON.parse(fs.readFileSync(subtitlePath, 'utf8'));
+        console.log(`[文件服务] 字幕文件路径: ${subtitlePath}`);
+        
+        if (!fs.existsSync(subtitlePath)) {
+            console.log('[文件服务] 未找到字幕缓存文件');
+            return null;
+        }
+        
+        const fileContent = fs.readFileSync(subtitlePath, 'utf8');
+        console.log('[文件服务] 成功读取字幕文件');
+        
+        try {
+            const data = JSON.parse(fileContent);
+            console.log('[文件服务] 成功解析JSON数据');
             
             // 验证数据格式
             if (!data.subtitles || !Array.isArray(data.subtitles)) {
-                console.warn('[文件服务] 缓存文件格式无效');
+                console.error('[文件服务] 缓存文件格式无效: subtitles不是数组');
+                return null;
+            }
+            
+            // 验证每个字幕对象
+            const isValid = data.subtitles.every((subtitle, index) => {
+                if (!subtitle || typeof subtitle !== 'object') {
+                    console.error(`[文件服务] 字幕对象 ${index} 无效`);
+                    return false;
+                }
+                
+                if (!subtitle.words || !Array.isArray(subtitle.words)) {
+                    console.error(`[文件服务] 字幕对象 ${index} 的words不是数组`);
+                    return false;
+                }
+                
+                return true;
+            });
+            
+            if (!isValid) {
+                console.error('[文件服务] 字幕数据验证失败');
                 return null;
             }
             
             console.log('[文件服务] 成功加载字幕缓存');
             return data;
+            
+        } catch (parseError) {
+            console.error('[文件服务] JSON解析失败:', parseError);
+            return null;
         }
-        console.log('[文件服务] 未找到字幕缓存');
-        return null;
     } catch (error) {
         console.error('[文件服务] 加载字幕缓存失败:', error);
         return null;
