@@ -30,7 +30,7 @@ async function createWindow() {
     width: 1200,
     height: 800,
     titleBarStyle: 'hiddenInset',  // macOS 专属的隐藏标题栏样式
-    trafficLightPosition: { x: 12, y: 12 }, // 调整红绿灯按钮位置
+    trafficLightPosition: { x: 20, y: 16 }, // 调整红绿灯按钮位置，增加左边距
     vibrancy: 'sidebar',  // 添加毛玻璃效果
     visualEffectState: 'active',
     webPreferences: {

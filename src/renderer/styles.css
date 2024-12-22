@@ -51,7 +51,7 @@ body {
 
 .sidebar-header {
   padding: 12px;
-  padding-top: 28px;
+  padding-top: 40px;
   border-bottom: 1px solid var(--border-color);
   min-height: 76px;
   flex-shrink: 0;
@@ -89,8 +89,8 @@ body {
   top: 0; bottom: 0; right: 0; left: 0;
   display: flex;
   flex-direction: column;
-  transition: margin-left var(--transition-speed) ease;
-  margin-left: 260px; /* 初始状态留出sidebar空间 */
+  transition: all var(--transition-speed) ease;
+  margin-left: 260px;
 }
 
 .sidebar.collapsed ~ .main-content {
@@ -109,6 +109,7 @@ body {
   -webkit-app-region: drag;
   height: 52px;
   box-sizing: border-box;
+  transition: padding-left var(--transition-speed) ease;
 }
 
 .top-bar .sidebar-toggle-button,
@@ -124,10 +125,11 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 4px;
-  transition: background-color var(--transition-speed) ease;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  transition: all var(--transition-speed) ease;
+  background-color: transparent;
 }
 
 .sidebar-toggle-button:hover {
@@ -140,11 +142,14 @@ body {
   gap: 16px;
   flex: 1;
   margin-top: 3px;
+  transition: margin-left var(--transition-speed) ease;
 }
 
 .translation-selector {
   display: flex;
   gap: 8px;
+  align-items: center;
+  height: 32px;
 }
 
 .option-pill {
@@ -425,7 +430,7 @@ audio {
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     -webkit-app-region: no-drag;
-    margin-top: 8px;
+    margin-top: 0;
 }
 
 .drop-zone:hover {
@@ -974,11 +979,70 @@ audio {
 
 /* 红绿灯按钮区域保护 */
 .traffic-light-area {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
-    width: 70px;  /* 红绿灯按钮区域宽度 */
-    height: 40px; /* 红绿灯按钮区域高度 */
+    width: 70px;
+    height: 40px;
     -webkit-app-region: drag;
-    z-index: 100;
+    z-index: 1000;
+    background: transparent;
+    pointer-events: none;
+}
+
+/* 主内容区域过渡效果优化 */
+.main-content {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    transition: all var(--transition-speed) ease;
+    margin-left: 260px;
+}
+
+/* 侧边栏收起状态优化 */
+.sidebar.collapsed ~ .main-content {
+    margin-left: 0;
+}
+
+/* 确保红绿灯按钮区域始终可见 */
+.traffic-light-area {
+    background: transparent;
+    pointer-events: none; /* 允许点击穿透 */
+}
+
+/* 优化工具栏内部元素布局 */
+.translation-options {
+    margin-left: 4px; /* 微调位置 */
+}
+
+/* 调整翻译选项按钮组的布局 */
+.translation-selector {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    height: 32px; /* 固定高度 */
+}
+
+/* 优化按钮悬停效果 */
+.sidebar-toggle-button:hover {
+    background-color: var(--hover-color);
+}
+
+/* 确保侧边栏切换按钮在折叠状态下的位置正确 */
+.sidebar.collapsed ~ .main-content .sidebar-toggle-button {
+    margin-left: 0;
+}
+
+/* 侧边栏展开时的样式 */
+.main-content .top-bar {
+    padding-left: 16px; /* 侧边栏展开时，缩进按钮靠左 */
+}
+
+/* 侧边栏收起时的样式 */
+.sidebar.collapsed ~ .main-content .top-bar {
+    padding-left: 80px; /* 侧边栏收起时，为红绿灯按钮预留空间 */
 }
