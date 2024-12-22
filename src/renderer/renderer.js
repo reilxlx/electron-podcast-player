@@ -27,9 +27,43 @@ window.addEventListener('DOMContentLoaded', async () => {
     audioPlayer = document.getElementById('audio-player');
     const fileList = document.getElementById('file-list');
 
+    // 添加搜索功能
+    const searchInput = document.getElementById('search-input');
+    let originalFileList = [];
+
     // 加载历史记录
     const audioIndex = await window.electronAPI.getAudioIndex();
     updateFileList(audioIndex);
+    originalFileList = Array.from(document.querySelectorAll('.history-item'));
+
+    // 搜索功能实现
+    searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        const fileList = document.getElementById('file-list');
+        
+        // 如果搜索词为空，显示所有文件
+        if (!searchTerm) {
+            originalFileList.forEach(item => {
+                item.style.display = 'block';
+            });
+            return;
+        }
+
+        // 过滤文件
+        originalFileList.forEach(item => {
+            const fileName = item.textContent.toLowerCase();
+            if (fileName.includes(searchTerm)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    });
+
+    // 阻止搜索框的拖拽事件
+    searchInput.addEventListener('mousedown', (e) => {
+        e.stopPropagation();
+    });
 
     audioPlayer.addEventListener('timeupdate', onTimeUpdate);
 
