@@ -241,6 +241,7 @@ body {
   transition: background-color var(--transition-speed) ease;
   position: relative;
   line-height: 1.5;
+  cursor: pointer;
 }
 
 /* 不同说话者的颜色条，不改变文字布局 */
@@ -376,12 +377,19 @@ audio {
   padding: 0 1px;
   border-radius: 3px;
   transition: background-color var(--transition-speed) ease, color var(--transition-speed) ease;
+  user-select: text;
+  cursor: text;
 }
 
 .word-active {
   background-color: rgba(0, 122, 255, 0.15);
   color: rgb(0, 122, 255);
   font-weight: 500;
+}
+
+.word::selection {
+  background-color: rgba(0, 122, 255, 0.2);
+  color: var(--text-primary);
 }
 
 /* 拖放区域样式 */
@@ -508,7 +516,7 @@ audio {
     -webkit-backdrop-filter: blur(20px);
     border-radius: 6px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
-    z-index: 1000;
+    z-index: 1002;
     padding: 4px;
     animation: menuFadeIn 0.1s ease-out;
 }
@@ -818,4 +826,49 @@ audio {
 
 .subtitle-container::-webkit-scrollbar-thumb:hover {
     background-color: rgba(153, 153, 165, 0.5);
+}
+
+/* 单词选中样式 */
+.word {
+    user-select: text;  /* 允许选中文本 */
+    cursor: text;       /* 文本选择光标 */
+}
+
+.word::selection {
+    background-color: rgba(0, 122, 255, 0.2);
+    color: var(--text-primary);
+}
+
+/* 确保右键菜单在选中文本上方显示 */
+.context-menu {
+    z-index: 1002;  /* 确保在其他弹窗之上 */
+}
+
+/* 翻译结果弹窗样式调整 */
+.macos-alert {
+    min-width: 300px;
+    max-width: 400px;
+}
+
+.macos-alert-title {
+    font-size: 16px;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.macos-alert-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-primary);
+    margin: 0;
+    word-break: break-word;
+}
+
+/* 确保不影响播放功能的样式 */
+.subtitle-block {
+    cursor: pointer;
+}
+
+.word:hover {
+    background-color: rgba(0, 122, 255, 0.1);
 }

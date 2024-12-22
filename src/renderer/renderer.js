@@ -400,7 +400,7 @@ function hideTooltip() {
 }
 
 async function loadHistoryFile(hash, info) {
-    console.log('[渲染进程] 开始载历史文件:', { hash, info });
+    console.log('[��染进程] 开始载历史文件:', { hash, info });
     
     // 先移除其他项的 active 类
     document.querySelectorAll('.history-item').forEach(item => {
@@ -531,16 +531,24 @@ function displaySubtitles(subtitles, translations, showTranslation) {
             currentSubtitleIndex = index;
         }
         
-        subtitleBlock.addEventListener('click', () => {
-            if (typeof subtitle.start_time === 'number') {
-                const startTime = subtitle.start_time / 1000;
-                if (audioPlayer) {
-                    audioPlayer.currentTime = startTime;
-                    audioPlayer.play().catch(error => console.error('[渲染进程] 播放失败:', error));
-                }
+        // 修改点击事件处理，添加计时器判断单击和双击
+        let clickTimer = null;
+        subtitleBlock.addEventListener('click', (e) => {
+            if (clickTimer === null) {
+                clickTimer = setTimeout(() => {
+                    // 单击事件：播放音频
+                    if (typeof subtitle.start_time === 'number') {
+                        const startTime = subtitle.start_time / 1000;
+                        if (audioPlayer) {
+                            audioPlayer.currentTime = startTime;
+                            audioPlayer.play().catch(error => console.error('[渲染进程] 播放失败:', error));
+                        }
+                    }
+                    clickTimer = null;
+                }, 200); // 200ms 内判断是否为双击
             }
         });
-        
+
         const originalText = document.createElement('div');
         originalText.className = 'original-text';
         
@@ -572,6 +580,31 @@ function displaySubtitles(subtitles, translations, showTranslation) {
                 if (wordIndex < subtitle.words.length - 1) {
                     originalText.appendChild(document.createTextNode(' '));
                 }
+
+                // 为每个单词添加双击和右键菜单事件
+                wordSpan.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    if (clickTimer) {
+                        clearTimeout(clickTimer);
+                        clickTimer = null;
+                    }
+                    // 双击时选中单词
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    range.selectNodeContents(wordSpan);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                });
+
+                wordSpan.addEventListener('contextmenu', async (e) => {
+                    e.preventDefault();
+                    const selection = window.getSelection();
+                    const selectedText = selection.toString().trim();
+                    
+                    if (selectedText) {
+                        showWordTranslationMenu(e, selectedText);
+                    }
+                });
             });
         } else {
             console.error(`[渲染进程] 字幕 ${index} 没有有效的words数组:`, subtitle);
@@ -1184,4 +1217,134 @@ function openSetAssemblyAIKeyModal() {
             alert('API Key不能为空');
         }
     });
+}
+
+// 显示单词翻译右键菜单
+async function showWordTranslationMenu(event, word) {
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+
+    const translateBtn = document.createElement('button');
+    translateBtn.className = 'context-menu-item';
+    translateBtn.innerHTML = `
+        <svg width="12" height="12" viewBox="0 0 12 12">
+            <path d="M1.5 3L4.5 9L7.5 3M2.5 6h4M9 2v8" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>翻译 "${word}"</span>
+    `;
+
+    translateBtn.addEventListener('click', async () => {
+        menu.remove();
+        await translateWord(word);
+    });
+
+    menu.appendChild(translateBtn);
+    document.body.appendChild(menu);
+
+    // 设置菜单位置
+    const x = event.clientX;
+    const y = event.clientY;
+    
+    const menuRect = menu.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+    
+    let menuX = x;
+    let menuY = y;
+    
+    if (x + menuRect.width > windowWidth) {
+        menuX = windowWidth - menuRect.width;
+    }
+    
+    if (y + menuRect.height > windowHeight) {
+        menuY = windowHeight - menuRect.height;
+    }
+    
+    menu.style.left = `${menuX}px`;
+    menu.style.top = `${menuY}px`;
+
+    // 点击其他区域关闭菜单
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+    
+    setTimeout(() => {
+        document.addEventListener('click', closeMenu);
+    }, 0);
+}
+
+// 翻译单词并显示结果
+async function translateWord(word) {
+    try {
+        // 获取当前选中的翻译器
+        const activePill = document.querySelector('.option-pill.active');
+        const selectedTranslator = activePill ? activePill.getAttribute('data-translator') : 'google';
+        let apiKey = null;
+        
+        if (selectedTranslator === 'silicon_cloud') {
+            const config = await window.electronAPI.getConfig();
+            if (!config || !config.silicon_cloud_api_key) {
+                throw new Error('未配置SiliconCloud API密钥');
+            }
+            apiKey = config.silicon_cloud_api_key;
+        }
+        
+        // 调用翻译API
+        const translationResult = await window.electronAPI.translateSubtitles({
+            fileHash: 'word_translation',
+            subtitles: [{ index: 0, text: word }],
+            translator: selectedTranslator,
+            apiKey: apiKey
+        });
+
+        // 显示翻译结果
+        showTranslationResult(word, translationResult[0]?.text || '翻译失败');
+        
+    } catch (error) {
+        console.error('翻译失败:', error);
+        showTranslationResult(word, `翻译失败: ${error.message}`);
+    }
+}
+
+// 显示翻译结果弹窗
+function showTranslationResult(word, translation) {
+    const existingModal = document.querySelector('.macos-alert');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'macos-alert';
+    modal.innerHTML = `
+        <div class="macos-alert-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24">
+                <path d="M3 5h12M9 3v2m1 3l2 2m2-2l-2 2m-8 3h8m-4-2v6m-6 2h12a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" 
+                      stroke="currentColor" 
+                      fill="none" 
+                      stroke-width="2" 
+                      stroke-linecap="round" 
+                      stroke-linejoin="round"/>
+            </svg>
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">${word}</p>
+            <p class="macos-alert-text">${translation}</p>
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">关闭</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
 }
