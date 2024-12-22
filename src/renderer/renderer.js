@@ -581,7 +581,8 @@ function displaySubtitles(subtitles, translations, showTranslation) {
     const createWordSpan = (word) => {
         const span = document.createElement('span');
         span.className = 'word';
-        span.textContent = word.text || '';
+        span.textContent = word.text || '';  // 保留原始文本，包括标点
+        
         if (typeof word.start === 'number') span.dataset.startTime = word.start;
         if (typeof word.end === 'number') span.dataset.endTime = word.end;
         return span;
@@ -639,6 +640,7 @@ function displaySubtitles(subtitles, translations, showTranslation) {
                 });
 
                 wordsFragment.appendChild(wordSpan);
+                // 添加空格作为文本节点
                 if (wordIndex < subtitle.words.length - 1) {
                     wordsFragment.appendChild(document.createTextNode(' '));
                 }
