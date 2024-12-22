@@ -400,7 +400,7 @@ function hideTooltip() {
 }
 
 async function loadHistoryFile(hash, info) {
-    console.log('[��染进程] 开始载历史文件:', { hash, info });
+    console.log('[渲染进程] 开始载历史文件:', { hash, info });
     
     // 先移除其他项的 active 类
     document.querySelectorAll('.history-item').forEach(item => {
@@ -588,7 +588,16 @@ function displaySubtitles(subtitles, translations, showTranslation) {
                         clearTimeout(clickTimer);
                         clickTimer = null;
                     }
-                    // 双击时选中单词
+
+                    // 移除其他单词的选中状态
+                    document.querySelectorAll('.word.selected').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+
+                    // 添加选中状态
+                    wordSpan.classList.add('selected');
+                    
+                    // 选中文本
                     const selection = window.getSelection();
                     const range = document.createRange();
                     range.selectNodeContents(wordSpan);
@@ -596,12 +605,24 @@ function displaySubtitles(subtitles, translations, showTranslation) {
                     selection.addRange(range);
                 });
 
+                // 添加点击其他区域取消选中的处理
+                document.addEventListener('click', (e) => {
+                    if (!e.target.closest('.word')) {
+                        document.querySelectorAll('.word.selected').forEach(el => {
+                            el.classList.remove('selected');
+                        });
+                    }
+                });
+
+                // 修改右键菜单事件处理
                 wordSpan.addEventListener('contextmenu', async (e) => {
                     e.preventDefault();
                     const selection = window.getSelection();
                     const selectedText = selection.toString().trim();
                     
                     if (selectedText) {
+                        // 确保当前单词有选中样式
+                        wordSpan.classList.add('selected');
                         showWordTranslationMenu(e, selectedText);
                     }
                 });
@@ -1276,6 +1297,12 @@ async function showWordTranslationMenu(event, word) {
     const closeMenu = (e) => {
         if (!menu.contains(e.target)) {
             menu.remove();
+            // 如果不是点击翻译按钮，则移除选中样式
+            if (!e.target.closest('.context-menu-item')) {
+                document.querySelectorAll('.word.selected').forEach(el => {
+                    el.classList.remove('selected');
+                });
+            }
             document.removeEventListener('click', closeMenu);
         }
     };
@@ -1312,9 +1339,19 @@ async function translateWord(word) {
         // 显示翻译结果
         showTranslationResult(word, translationResult[0]?.text || '翻译失败');
         
+        // 移除选中样式
+        document.querySelectorAll('.word.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
+        
     } catch (error) {
         console.error('翻译失败:', error);
         showTranslationResult(word, `翻译失败: ${error.message}`);
+        
+        // 移除选中样式
+        document.querySelectorAll('.word.selected').forEach(el => {
+            el.classList.remove('selected');
+        });
     }
 }
 
