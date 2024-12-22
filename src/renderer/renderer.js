@@ -23,6 +23,19 @@ window.electronAPI.onTranslationProgress((data) => {
     );
 });
 
+// 添加防抖函数
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 window.addEventListener('DOMContentLoaded', async () => {
     audioPlayer = document.getElementById('audio-player');
     const fileList = document.getElementById('file-list');
@@ -38,26 +51,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     // 搜索功能实现
     searchInput.addEventListener('input', (e) => {
-        const searchTerm = e.target.value.toLowerCase();
-        const fileList = document.getElementById('file-list');
-        
-        // 如果搜索词为空，显示所有文件
-        if (!searchTerm) {
-            originalFileList.forEach(item => {
-                item.style.display = 'block';
-            });
-            return;
-        }
-
-        // 过滤文件
-        originalFileList.forEach(item => {
-            const fileName = item.textContent.toLowerCase();
-            if (fileName.includes(searchTerm)) {
-                item.style.display = 'block';
-            } else {
-                item.style.display = 'none';
-            }
-        });
+        searchFiles(e.target.value);
     });
 
     // 阻止搜索框的拖拽事件
@@ -127,30 +121,38 @@ window.addEventListener('DOMContentLoaded', async () => {
     });
 });
 
+// 优化文件列表更新
 function updateFileList(audioIndex) {
     const fileList = document.getElementById('file-list');
-    fileList.innerHTML = '';
+    const fragment = document.createDocumentFragment();
     
     const entries = Object.entries(audioIndex).reverse();
+    const fileNameCache = new Map(); // 缓存文件名
     
     entries.forEach(([hash, info]) => {
         const div = document.createElement('div');
         div.className = 'history-item';
-        div.setAttribute('data-hash', hash);
-        const fileName = info.file_path.split('/').pop();
+        div.dataset.hash = hash;
+        
+        // 从缓存获取文件名，如果没有则计算并缓存
+        let fileName = fileNameCache.get(info.file_path);
+        if (!fileName) {
+            fileName = info.file_path.split('/').pop();
+            fileNameCache.set(info.file_path, fileName);
+        }
         div.textContent = fileName;
         
-        // 添加右键菜单事件
+        // 使用事件委托处理右键菜单
         div.addEventListener('contextmenu', (e) => {
             e.preventDefault();
             showContextMenu(e, hash);
         });
         
-        // 修改悬浮显示，只显示文件名
+        // 优化悬浮显示
         let tooltipTimeout;
         div.addEventListener('mouseenter', (e) => {
             tooltipTimeout = setTimeout(() => {
-                showTooltip(e, fileName);  // 只传入文件名
+                showTooltip(e, fileName);
             }, 500);
         });
         
@@ -160,9 +162,31 @@ function updateFileList(audioIndex) {
         });
         
         div.addEventListener('click', () => loadHistoryFile(hash, info));
-        fileList.appendChild(div);
+        fragment.appendChild(div);
     });
+    
+    fileList.innerHTML = '';
+    fileList.appendChild(fragment);
 }
+
+// 优化搜索功能
+const searchFiles = debounce((searchTerm) => {
+    const fileList = document.getElementById('file-list');
+    const items = fileList.getElementsByClassName('history-item');
+    
+    if (!searchTerm) {
+        Array.from(items).forEach(item => {
+            item.style.display = 'block';
+        });
+        return;
+    }
+    
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    Array.from(items).forEach(item => {
+        const fileName = item.textContent.toLowerCase();
+        item.style.display = fileName.includes(lowerSearchTerm) ? 'block' : 'none';
+    });
+}, 150); // 150ms 的防抖延迟
 
 async function showContextMenu(event, hash) {
     // 移除已存在的上下文菜单
@@ -410,7 +434,7 @@ async function showContextMenu(event, hash) {
     }, 0);
 }
 
-// 文件名提示框相关函数
+// 文件名提示框关函数
 function showTooltip(event, fileName) {  // 修改参数名以更好地反映其内容
     const tooltip = document.createElement('div');
     tooltip.className = 'filename-tooltip';
@@ -521,27 +545,49 @@ function displaySubtitles(subtitles, translations, showTranslation) {
         return;
     }
 
-    subtitleDisplay.innerHTML = '';
-    wordPositions = [];
-    currentSubtitleIndex = -1;  // 重置当前字幕索引
-    
+    // 使用DocumentFragment来减少DOM操作
+    const fragment = document.createDocumentFragment();
     const container = document.createElement('div');
     container.className = 'subtitle-container';
-    subtitleDisplay.appendChild(container);
+    fragment.appendChild(container);
+
+    wordPositions = [];
+    currentSubtitleIndex = -1;
 
     if (!Array.isArray(subtitles)) {
         console.error('[渲染进程] 字幕数据不是数组:', subtitles);
-        container.innerHTML = `
-            <div class="error-message">
-                <p>字幕数据格式错误</p>
-            </div>
-        `;
+        container.innerHTML = '<div class="error-message"><p>字幕数据格式错误</p></div>';
+        subtitleDisplay.innerHTML = '';
+        subtitleDisplay.appendChild(fragment);
         return;
     }
+
+    // 创建一个通用的点击事件处理函数
+    const handleWordClick = (e) => {
+        if (!e.target.closest('.word')) {
+            document.querySelectorAll('.word.selected').forEach(el => {
+                el.classList.remove('selected');
+            });
+        }
+    };
+
+    // 只添加一次全局点击事件监听器
+    document.removeEventListener('click', handleWordClick);
+    document.addEventListener('click', handleWordClick);
+
+    const currentTime = audioPlayer ? audioPlayer.currentTime * 1000 : 0;
     
+    // 预先创建常用的DOM元素
+    const createWordSpan = (word) => {
+        const span = document.createElement('span');
+        span.className = 'word';
+        span.textContent = word.text || '';
+        if (typeof word.start === 'number') span.dataset.startTime = word.start;
+        if (typeof word.end === 'number') span.dataset.endTime = word.end;
+        return span;
+    };
+
     subtitles.forEach((subtitle, index) => {
-        console.log(`[渲染进程] 处理字幕 ${index}:`, subtitle);
-        
         if (!subtitle || typeof subtitle !== 'object') {
             console.error(`[渲染进程] 字幕对象 ${index} 无效:`, subtitle);
             return;
@@ -549,28 +595,22 @@ function displaySubtitles(subtitles, translations, showTranslation) {
 
         const subtitleBlock = document.createElement('div');
         subtitleBlock.className = 'subtitle-block';
-        subtitleBlock.setAttribute('data-index', index);
+        subtitleBlock.dataset.index = index;
         
         if (subtitle.speaker) {
-            subtitleBlock.setAttribute('data-speaker', subtitle.speaker);
+            subtitleBlock.dataset.speaker = subtitle.speaker;
         }
-        
-        // 检查当前时间，如果在这个字幕的时间范围内，则添加active类
-        if (audioPlayer && 
-            typeof subtitle.start_time === 'number' && 
-            typeof subtitle.end_time === 'number' && 
-            audioPlayer.currentTime * 1000 >= subtitle.start_time && 
-            audioPlayer.currentTime * 1000 <= subtitle.end_time) {
+
+        if (currentTime >= subtitle.start_time && currentTime <= subtitle.end_time) {
             subtitleBlock.classList.add('active');
             currentSubtitleIndex = index;
         }
-        
-        // 修改点击事件处理，添加计时器判断单击和双击
+
+        // 使用事件委托来处理点击事件
         let clickTimer = null;
         subtitleBlock.addEventListener('click', (e) => {
             if (clickTimer === null) {
                 clickTimer = setTimeout(() => {
-                    // 单击事件：播放音频
                     if (typeof subtitle.start_time === 'number') {
                         const startTime = subtitle.start_time / 1000;
                         if (audioPlayer) {
@@ -579,59 +619,39 @@ function displaySubtitles(subtitles, translations, showTranslation) {
                         }
                     }
                     clickTimer = null;
-                }, 200); // 200ms 内判断是否为双击
+                }, 200);
             }
         });
 
         const originalText = document.createElement('div');
         originalText.className = 'original-text';
-        
-        if (Array.isArray(subtitle.words)) {
-            subtitle.words.forEach((word, wordIndex) => {
-                if (!word || typeof word !== 'object') {
-                    console.error(`[渲染进程] 单词对象无效:`, word);
-                    return;
-                }
 
-                const wordSpan = document.createElement('span');
-                wordSpan.className = 'word';
-                wordSpan.textContent = word.text || '';
-                
-                if (typeof word.start === 'number') {
-                    wordSpan.setAttribute('data-start-time', word.start);
-                }
-                if (typeof word.end === 'number') {
-                    wordSpan.setAttribute('data-end-time', word.end);
-                }
-                
+        if (Array.isArray(subtitle.words)) {
+            const wordsFragment = document.createDocumentFragment();
+            subtitle.words.forEach((word, wordIndex) => {
+                if (!word || typeof word !== 'object') return;
+
+                const wordSpan = createWordSpan(word);
                 wordPositions.push({
                     element: wordSpan,
                     startTime: word.start,
                     endTime: word.end
                 });
-                
-                originalText.appendChild(wordSpan);
+
+                wordsFragment.appendChild(wordSpan);
                 if (wordIndex < subtitle.words.length - 1) {
-                    originalText.appendChild(document.createTextNode(' '));
+                    wordsFragment.appendChild(document.createTextNode(' '));
                 }
 
-                // 为每个单词添加双击和右键菜单事件
+                // 使用事件委托处理双击和右键菜单事件
                 wordSpan.addEventListener('dblclick', (e) => {
                     e.preventDefault();
                     if (clickTimer) {
                         clearTimeout(clickTimer);
                         clickTimer = null;
                     }
-
-                    // 移除其他单词的选中状态
-                    document.querySelectorAll('.word.selected').forEach(el => {
-                        el.classList.remove('selected');
-                    });
-
-                    // 添加选中状态
+                    document.querySelectorAll('.word.selected').forEach(el => el.classList.remove('selected'));
                     wordSpan.classList.add('selected');
-                    
-                    // 选中文本
                     const selection = window.getSelection();
                     const range = document.createRange();
                     range.selectNodeContents(wordSpan);
@@ -639,35 +659,24 @@ function displaySubtitles(subtitles, translations, showTranslation) {
                     selection.addRange(range);
                 });
 
-                // 添加点击其他区域取消选中的处理
-                document.addEventListener('click', (e) => {
-                    if (!e.target.closest('.word')) {
-                        document.querySelectorAll('.word.selected').forEach(el => {
-                            el.classList.remove('selected');
-                        });
-                    }
-                });
-
-                // 修改右键菜单事件处理
-                wordSpan.addEventListener('contextmenu', async (e) => {
+                wordSpan.addEventListener('contextmenu', (e) => {
                     e.preventDefault();
                     const selection = window.getSelection();
                     const selectedText = selection.toString().trim();
-                    
                     if (selectedText) {
-                        // 确保当前单词有选中样式
                         wordSpan.classList.add('selected');
                         showWordTranslationMenu(e, selectedText);
                     }
                 });
             });
+            originalText.appendChild(wordsFragment);
         } else {
             console.error(`[渲染进程] 字幕 ${index} 没有有效的words数组:`, subtitle);
             originalText.textContent = subtitle.text || '';
         }
-        
+
         subtitleBlock.appendChild(originalText);
-        
+
         if (translations && translations[index]) {
             const translationText = document.createElement('div');
             translationText.className = 'translation-text';
@@ -677,9 +686,12 @@ function displaySubtitles(subtitles, translations, showTranslation) {
             }
             subtitleBlock.appendChild(translationText);
         }
-        
+
         container.appendChild(subtitleBlock);
     });
+
+    subtitleDisplay.innerHTML = '';
+    subtitleDisplay.appendChild(fragment);
 }
 
 function toggleTranslation() {
@@ -721,38 +733,39 @@ function toggleTranslation() {
 }
 
 function updateSubtitleHighlight(currentTime) {
-    const subtitleBlocks = document.querySelectorAll('.subtitle-block');
-    let newIndex = -1;
-
-    for (let i = 0; i < subtitles.length; i++) {
-        const subtitle = subtitles[i];
-        if (currentTime >= subtitle.start_time && currentTime <= subtitle.end_time) {
-            newIndex = i;
-            break;
-        }
-    }
+    // 使用二分查找来找到当前时间对应的字幕索引
+    let newIndex = findSubtitleIndex(currentTime);
 
     // 只有当索引发生变化时才更新高亮状态
     if (newIndex !== currentSubtitleIndex) {
-        subtitleBlocks.forEach(block => block.classList.remove('active'));
-        
+        const container = document.querySelector('.subtitle-container');
+        if (!container) return;
+
+        // 移除旧的高亮
+        const oldBlock = container.querySelector('.subtitle-block.active');
+        if (oldBlock) {
+            oldBlock.classList.remove('active');
+        }
+
+        // 添加新的高亮
         if (newIndex !== -1) {
-            const newBlock = document.querySelector(`[data-index="${newIndex}"]`);
+            const newBlock = container.querySelector(`[data-index="${newIndex}"]`);
             if (newBlock) {
                 newBlock.classList.add('active');
                 
-                const container = document.querySelector('.subtitle-container');
                 const containerRect = container.getBoundingClientRect();
                 const blockRect = newBlock.getBoundingClientRect();
-
                 const blockCenter = blockRect.height / 2;
                 const containerCenter = containerRect.height / 2;
                 const offsetTop = (blockRect.top - containerRect.top) + container.scrollTop;
                 const targetScrollTop = offsetTop - containerCenter + blockCenter;
 
-                container.scrollTo({
-                    top: targetScrollTop,
-                    behavior: 'smooth'
+                // 使用 requestAnimationFrame 进行平滑滚动
+                requestAnimationFrame(() => {
+                    container.scrollTo({
+                        top: targetScrollTop,
+                        behavior: 'smooth'
+                    });
                 });
             }
         }
@@ -761,25 +774,90 @@ function updateSubtitleHighlight(currentTime) {
     }
 }
 
-function onTimeUpdate() {
-    const currentTime = audioPlayer.currentTime * 1000;
-    updateSubtitleHighlight(currentTime);
-    updateWordHighlight(currentTime);
+// 使用二分查找优化字幕索引查找
+function findSubtitleIndex(currentTime) {
+    let left = 0;
+    let right = subtitles.length - 1;
+
+    while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        const subtitle = subtitles[mid];
+
+        if (currentTime >= subtitle.start_time && currentTime <= subtitle.end_time) {
+            return mid;
+        }
+
+        if (currentTime < subtitle.start_time) {
+            right = mid - 1;
+        } else {
+            left = mid + 1;
+        }
+    }
+
+    return -1;
 }
 
 function updateWordHighlight(currentTime) {
-    if (currentWordIndex !== -1 && wordPositions[currentWordIndex]) {
-        wordPositions[currentWordIndex].element.classList.remove('word-active');
+    // 如果当前没有高亮的单词，或者当前高亮的单词已经不在时间范围内
+    if (currentWordIndex === -1 || 
+        !wordPositions[currentWordIndex] ||
+        currentTime < wordPositions[currentWordIndex].startTime ||
+        currentTime > wordPositions[currentWordIndex].endTime) {
+
+        // 移除当前高亮
+        if (currentWordIndex !== -1 && wordPositions[currentWordIndex]) {
+            wordPositions[currentWordIndex].element.classList.remove('word-active');
+        }
+
+        // 使用二分查找找到新的单词索引
+        const newWordIndex = findWordIndex(currentTime);
+
+        if (newWordIndex !== -1 && wordPositions[newWordIndex]) {
+            wordPositions[newWordIndex].element.classList.add('word-active');
+            currentWordIndex = newWordIndex;
+        } else {
+            currentWordIndex = -1;
+        }
+    }
+}
+
+// 使用二分查找优化单词索引查找
+function findWordIndex(currentTime) {
+    let left = 0;
+    let right = wordPositions.length - 1;
+
+    while (left <= right) {
+        const mid = Math.floor((left + right) / 2);
+        const word = wordPositions[mid];
+
+        if (currentTime >= word.startTime && currentTime <= word.endTime) {
+            return mid;
+        }
+
+        if (currentTime < word.startTime) {
+            right = mid - 1;
+        } else {
+            left = mid + 1;
+        }
     }
 
-    const newWordIndex = wordPositions.findIndex(word => 
-        currentTime >= word.startTime && currentTime <= word.endTime
-    );
+    return -1;
+}
 
-    if (newWordIndex !== -1 && wordPositions[newWordIndex]) {
-        wordPositions[newWordIndex].element.classList.add('word-active');
-        currentWordIndex = newWordIndex;
+// 优化音频时间更新处理
+let lastUpdateTime = 0;
+const UPDATE_INTERVAL = 50; // 最小更新间隔（毫秒）
+
+function onTimeUpdate() {
+    const now = Date.now();
+    if (now - lastUpdateTime < UPDATE_INTERVAL) {
+        return; // 如果距离上次更新时间太短，则跳过
     }
+    
+    const currentTime = audioPlayer.currentTime * 1000;
+    updateSubtitleHighlight(currentTime);
+    updateWordHighlight(currentTime);
+    lastUpdateTime = now;
 }
 
 // 初始化拖放区域
