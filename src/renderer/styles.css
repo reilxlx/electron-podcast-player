@@ -8,6 +8,7 @@
   --hover-color: #F5F5F7;
   --active-color: #E5E5E5;
   --transition-speed: 0.2s;
+  --traffic-light-spacing: 16px;
 }
 
 body {
@@ -24,6 +25,7 @@ body {
   width: 100vw;
   height: 100vh;
   overflow: hidden;
+  -webkit-app-region: no-drag;
 }
 
 /* 使用绝对定位的方式将sidebar和main-content进行布局 */
@@ -40,6 +42,7 @@ body {
   transform: translateX(0);
   display: flex;
   flex-direction: column;
+  padding-top: 12px;
 }
 
 .sidebar.collapsed {
@@ -47,10 +50,13 @@ body {
 }
 
 .sidebar-header {
-  padding: 16px;
+  padding: 12px;
+  padding-top: 28px;
   border-bottom: 1px solid var(--border-color);
-  min-height: 84px;
+  min-height: 76px;
   flex-shrink: 0;
+  -webkit-app-region: drag;
+  position: relative;
 }
 
 .drag-area {
@@ -74,7 +80,7 @@ body {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
-  height: calc(100% - 100px);
+  height: calc(100% - 116px);
 }
 
 /* main-content绝对定位，与sidebar同级 */
@@ -93,12 +99,24 @@ body {
 
 /* 顶部工具栏 */
 .top-bar {
-  padding: 16px 24px;
+  padding: 8px 16px;
+  padding-top: 12px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   background-color: var(--background-color);
+  -webkit-app-region: drag;
+  height: 52px;
+  box-sizing: border-box;
+}
+
+.top-bar .sidebar-toggle-button,
+.top-bar .translation-selector,
+.top-bar .option-pill,
+.top-bar .toggle,
+.top-bar .actions {
+  -webkit-app-region: no-drag;
 }
 
 .sidebar-toggle-button {
@@ -121,6 +139,7 @@ body {
   align-items: center;
   gap: 16px;
   flex: 1;
+  margin-top: 3px;
 }
 
 .translation-selector {
@@ -129,12 +148,13 @@ body {
 }
 
 .option-pill {
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 16px;
-  font-size: 13px;
+  font-size: 14px;
   cursor: pointer;
   transition: background-color var(--transition-speed) ease;
   background-color: var(--hover-color);
+  font-weight: 450;
 }
 
 .option-pill.active {
@@ -154,6 +174,7 @@ body {
   align-items: center;
   gap: 8px;
   cursor: pointer;
+  margin-top: 3px;
 }
 
 .toggle-slider {
@@ -396,13 +417,15 @@ audio {
 .drop-zone {
     border: 2px dashed #ccc;
     border-radius: 8px;
-    padding: 20px;
+    padding: 16px;
     text-align: center;
     cursor: pointer;
     transition: all 0.3s ease;
     background-color: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
+    -webkit-app-region: no-drag;
+    margin-top: 8px;
 }
 
 .drop-zone:hover {
@@ -921,4 +944,41 @@ audio {
 .subtitle-display {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+/* 翻译选项按钮样式 */
+.option-pill {
+    padding: 5px 12px;
+    border-radius: 16px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: background-color var(--transition-speed) ease;
+    background-color: var(--hover-color);
+    font-weight: 450;
+}
+
+/* 开关标签文字样式 */
+.toggle-label {
+    font-size: 14px;
+    color: var(--text-primary);
+    font-weight: 450;
+}
+
+/* 确保所有按钮文字大小一致 */
+.translation-selector,
+.option-pill,
+.toggle-label {
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+/* 红绿灯按钮区域保护 */
+.traffic-light-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 70px;  /* 红绿灯按钮区域宽度 */
+    height: 40px; /* 红绿灯按钮区域高度 */
+    -webkit-app-region: drag;
+    z-index: 100;
 }
