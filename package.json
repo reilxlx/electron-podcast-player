@@ -6,7 +6,7 @@
   "scripts": {
     "start": "electron .",
     "build": "electron-builder",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:mac": "electron-builder --mac"
   },
   "build": {
     "appId": "com.audioplay.app",
@@ -17,7 +17,12 @@
         "dmg",
         "zip"
       ],
-      "icon": "build/app_icon.icns"
+      "icon": "build/app_icon.icns",
+      "darkModeSupport": true,
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "files": [
       "**/*",
@@ -29,16 +34,20 @@
         "from": "podcast_data",
         "to": "podcast_data"
       }
-    ]
+    ],
+    "directories": {
+      "buildResources": "build",
+      "output": "dist"
+    }
   },
-  "author": "",
+  "author": "reilxlx",
   "license": "ISC",
   "dependencies": {
     "assemblyai": "^4.8.0",
     "node-fetch": "^2.7.0"
   },
   "devDependencies": {
-    "electron": "^28.0.0",
-    "electron-builder": "^24.9.1"
+    "electron": "^28.3.3",
+    "electron-builder": "^24.13.3"
   }
 }
