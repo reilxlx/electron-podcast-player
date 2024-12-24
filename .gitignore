@@ -9,6 +9,7 @@
 /dist/
 /build/
 /logs/
+/tests/
 
 # 忽略临时文件
 *.tmp
