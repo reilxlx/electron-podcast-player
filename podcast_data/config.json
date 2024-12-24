@@ -1,0 +1,5 @@
+{
+  "asr_api_key": "your_asr_api_key_here",
+  "silicon_cloud_api_key": "your_silicon_cloud_api_key_here",
+  "silicon_cloud_model": "Qwen/Qwen2.5-7B-Instruct"
+}
