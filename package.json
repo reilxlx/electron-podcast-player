@@ -40,7 +40,7 @@
       "output": "dist"
     }
   },
-  "author": "reilxlx",
+  "author": "reilxlx@gmail.com",
   "license": "ISC",
   "dependencies": {
     "assemblyai": "^4.8.0",
