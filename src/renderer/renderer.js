@@ -80,7 +80,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     initDropZone();
     
-    // -------- 新增：监听历史列表滚动事件，实现滚动时显示滚动条，停止后隐藏 --------
+    // -------- 新：监听历史列表滚动事件，实现滚动时显示滚动条，停止后隐藏 --------
     const historyList = document.querySelector('.history-list');
     let scrollTimeout;
     historyList.addEventListener('scroll', () => {
@@ -112,12 +112,18 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // 添加右键菜单监听器到SiliconCloud按钮
+    // 添加右键��单监听器到SiliconCloud按钮和SiliconCloud转录按钮
     const siliconCloudPill = document.querySelector('.option-pill[data-translator="silicon_cloud"]');
+    const siliconCloudAsrPill = document.querySelector('.option-pill[data-translator="silicon_cloud_asr"]');
     
     siliconCloudPill.addEventListener('contextmenu', (e) => {
         e.preventDefault();
         showModelContextMenu(e, 'silicon_cloud');
+    });
+
+    siliconCloudAsrPill.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showAsrModelContextMenu(e);
     });
 });
 
@@ -699,7 +705,7 @@ function displaySubtitles(subtitles, translations, showTranslation) {
 function toggleTranslation() {
     const translationElements = document.querySelectorAll('.translation-text');
     
-    // 获取容器元素，添加空值检查
+    // ���取容器元素，添加空值检查
     const container = document.querySelector('.subtitle-container');
     if (!container) {
         console.warn('未找到字幕容器元素');
@@ -738,7 +744,7 @@ function updateSubtitleHighlight(currentTime) {
     // 使用二分查找来找到当前时间对应的字幕索引
     let newIndex = findSubtitleIndex(currentTime);
 
-    // 只有当索引发生变化时才更新高亮状态
+    // 只有当索引发生变化���才更新高亮状态
     if (newIndex !== currentSubtitleIndex) {
         const container = document.querySelector('.subtitle-container');
         if (!container) return;
@@ -944,7 +950,7 @@ async function handleAudioFile(filePath) {
         // 设置新添加的文件为激活状态
         const currentItem = document.querySelector(`.history-item[data-hash="${result.fileHash}"]`);
         if (currentItem) {
-            // 移除其他项的激活状态
+            // ���除其他项的激活状态
             document.querySelectorAll('.history-item').forEach(item => {
                 item.classList.remove('active');
             });
@@ -979,7 +985,7 @@ async function initTranslatorSelection() {
             pill.classList.add('active');
         });
 
-        // 为 SiliconCloud 和 AssemblyAI 按钮添加右键菜单
+        // 为 SiliconCloud 和 AssemblyAI 按添加右键菜单
         if (pill.getAttribute('data-translator') === 'silicon_cloud' || 
             pill.getAttribute('data-translator') === 'assembly_ai') {
             pill.addEventListener('contextmenu', (e) => {
@@ -1053,7 +1059,7 @@ function updateTranslationProgress(current, total, detail = '') {
         countElement.textContent = `已完成：${current}/${total}`;
     }
     
-    // 更新百分比
+    // ��新百分比
     const percentElement = progressElement.querySelector('.translation-progress-percentage');
     if (percentElement) {
         percentElement.textContent = `${percent}%`;
@@ -1098,7 +1104,7 @@ window.electronAPI.onTranslationProgress((data) => {
 
 // 显示设置模型的上下文菜单
 function showModelContextMenu(event, translator) {
-    event.preventDefault(); // 阻止默认右键菜单
+    event.preventDefault();
 
     // 移除已存在的上下文菜单
     const existingMenu = document.querySelector('.context-menu');
@@ -1121,7 +1127,7 @@ function showModelContextMenu(event, translator) {
                   stroke-linecap="round" 
                   stroke-linejoin="round"/>
         </svg>
-        <span>设置模型</span>
+        <span>设置翻译模型</span>
     `;
 
     setModelBtn.addEventListener('click', () => {
@@ -1141,7 +1147,7 @@ function showModelContextMenu(event, translator) {
                   stroke-linecap="round" 
                   stroke-linejoin="round"/>
         </svg>
-        <span>设置API Key</span>
+        <span>设置翻译API Key</span>
     `;
 
     setApiKeyBtn.addEventListener('click', () => {
@@ -1191,7 +1197,7 @@ function showModelContextMenu(event, translator) {
     });
 }
 
-// 打开设置模型的模态窗口
+// ��开设置模型的模态窗口
 function openSetModelModal(translator) {
     const existingModal = document.querySelector('.macos-alert');
     if (existingModal) {
@@ -1498,4 +1504,208 @@ function showTranslationResult(word, translation) {
         </div>
     `;
     document.body.appendChild(modal);
+}
+
+// 显示ASR设置的上下文菜单
+function showAsrModelContextMenu(event) {
+    event.preventDefault();
+
+    // 移除已存在的上下文菜单
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+
+    // 添加"设置模型"选项
+    const setModelBtn = document.createElement('button');
+    setModelBtn.className = 'context-menu-item';
+    setModelBtn.innerHTML = `
+        <svg class="menu-icon" viewBox="0 0 16 16">
+            <path d="M13.5 8.5l-1.5 1.5-2-2L8.5 9.5l-2-2L5 9 3.5 7.5m7-3.5h3m-3 7h3m-12-7h3m-3 7h3m4-10v13" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-width="1.2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>设置转录模型</span>
+    `;
+
+    setModelBtn.addEventListener('click', () => {
+        menu.remove();
+        openSetAsrModelModal();
+    });
+
+    // 添加"设置API Key"选项
+    const setApiKeyBtn = document.createElement('button');
+    setApiKeyBtn.className = 'context-menu-item';
+    setApiKeyBtn.innerHTML = `
+        <svg class="menu-icon" viewBox="0 0 16 16">
+            <path d="M8 1v14M4 5l4-4 4 4M4 11h8" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-width="1.2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>设置转录API Key</span>
+    `;
+
+    setApiKeyBtn.addEventListener('click', () => {
+        menu.remove();
+        openSetAsrApiKeyModal();
+    });
+
+    menu.appendChild(setModelBtn);
+    menu.appendChild(setApiKeyBtn);
+    document.body.appendChild(menu);
+
+    // 设置菜单位置
+    const rect = event.target.getBoundingClientRect();
+    const x = event.clientX;
+    const y = event.clientY;
+
+    // 确保菜单不会超出窗口边界
+    const menuRect = menu.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let menuX = x;
+    let menuY = y;
+
+    if (x + menuRect.width > windowWidth) {
+        menuX = windowWidth - menuRect.width;
+    }
+
+    if (y + menuRect.height > windowHeight) {
+        menuY = windowHeight - menuRect.height;
+    }
+
+    menu.style.left = `${menuX}px`;
+    menu.style.top = `${menuY}px`;
+
+    // 点击其他区域关闭菜单
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+
+    requestAnimationFrame(() => {
+        document.addEventListener('click', closeMenu);
+    });
+}
+
+// 打开设置ASR模型的模态窗口
+function openSetAsrModelModal() {
+    const existingModal = document.querySelector('.macos-alert');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'macos-alert';
+    modal.innerHTML = `
+        <div class="macos-alert-icon">
+            <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">设置SiliconCloud转录模型</p>
+            <input type="text" id="asr-model-input" class="macos-alert-input" placeholder="输入模型名称">
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" id="save-asr-model-button">保存</button>
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 获取当前模型名称并填充到输入框中
+    window.electronAPI.getConfig().then(config => {
+        const modelInput = document.getElementById('asr-model-input');
+        if (config && config.silicon_cloud_asr_model) {
+            modelInput.value = config.silicon_cloud_asr_model;
+        }
+    }).catch(error => {
+        console.error('获取当前ASR模型名称失败:', error);
+    });
+
+    // 处理保存按钮点击
+    const saveButton = document.getElementById('save-asr-model-button');
+    saveButton.addEventListener('click', async () => {
+        const modelInput = document.getElementById('asr-model-input').value.trim();
+        if (modelInput) {
+            try {
+                await window.electronAPI.saveConfig({
+                    silicon_cloud_asr_model: modelInput
+                });
+                modal.remove();
+                alert('ASR模型名称已保存');
+            } catch (error) {
+                console.error('保存ASR模型失败:', error);
+                alert('保存ASR模型失败，请重试');
+            }
+        } else {
+            alert('模型名称不能为空');
+        }
+    });
+}
+
+// 打开设置ASR API Key的模态窗口
+function openSetAsrApiKeyModal() {
+    const existingModal = document.querySelector('.macos-alert');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'macos-alert';
+    modal.innerHTML = `
+        <div class="macos-alert-icon">
+            <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">设置SiliconCloud转录API Key</p>
+            <input type="text" id="asr-api-key-input" class="macos-alert-input" placeholder="输入API Key">
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" id="save-asr-api-key-button">保存</button>
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 获取当前API Key并填充到输入框中
+    window.electronAPI.getConfig().then(config => {
+        const apiKeyInput = document.getElementById('asr-api-key-input');
+        if (config && config.silicon_cloud_asr_api_key) {
+            apiKeyInput.value = config.silicon_cloud_asr_api_key;
+        }
+    }).catch(error => {
+        console.error('获取当前ASR API Key失败:', error);
+    });
+
+    // 处理保存按钮点击
+    const saveButton = document.getElementById('save-asr-api-key-button');
+    saveButton.addEventListener('click', async () => {
+        const apiKeyInput = document.getElementById('asr-api-key-input').value.trim();
+        if (apiKeyInput) {
+            try {
+                await window.electronAPI.saveConfig({
+                    silicon_cloud_asr_api_key: apiKeyInput
+                });
+                modal.remove();
+                alert('ASR API Key已保存');
+            } catch (error) {
+                console.error('保存ASR API Key失败:', error);
+                alert('保存ASR API Key失败，请重试');
+            }
+        } else {
+            alert('API Key不能为空');
+        }
+    });
 }
