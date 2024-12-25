@@ -25,6 +25,11 @@
 ```bash
 git clone https://github.com/reilxlx/electron-podcast-player.git
 cd electron-podcast-player
+mkdir podcast_data/
+mkdir podcast_data/audio/
+mkdir podcast_data/subtitles/
+touch podcast_data/audio_index.json
+touch podcast_data/config.json
 ```
 
 2. 申请API Key：
