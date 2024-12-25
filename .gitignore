@@ -14,6 +14,8 @@
 *.tmp
 *.log
 .cursorrules
+/podcast_data/audio_index.json
+/podcast_data/config.json
 /src/README.md
 
 # 忽略 macOS 的 .DS_Store 文件
