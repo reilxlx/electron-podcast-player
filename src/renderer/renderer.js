@@ -40,6 +40,20 @@ window.addEventListener('DOMContentLoaded', async () => {
     audioPlayer = document.getElementById('audio-player');
     const fileList = document.getElementById('file-list');
 
+    // 初始化总结按钮状态
+    const summaryButton = document.querySelector('.option-pill[data-translator="summary"]');
+    summaryButton.classList.add('disabled');
+
+    // 监听音频加载事件
+    audioPlayer.addEventListener('loadedmetadata', () => {
+        summaryButton.classList.remove('disabled');
+    });
+
+    // 监听音频结束事件
+    audioPlayer.addEventListener('emptied', () => {
+        summaryButton.classList.add('disabled');
+    });
+
     // 添加搜索功能
     const searchInput = document.getElementById('search-input');
     let originalFileList = [];
@@ -80,7 +94,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     initDropZone();
     
-    // -------- 新���监听历史列表滚动事件，实现滚动时显示滚动条，停止后隐藏 --------
+    // -------- 新���监听历史列表��动事件，实现滚动时显示滚动条，停止后隐藏 --------
     const historyList = document.querySelector('.history-list');
     let scrollTimeout;
     historyList.addEventListener('scroll', () => {
@@ -148,7 +162,7 @@ function updateFileList(audioIndex) {
             showContextMenu(e, hash);
         });
         
-        // 优化悬浮显示
+        // 优化悬浮��示
         let tooltipTimeout;
         div.addEventListener('mouseenter', (e) => {
             tooltipTimeout = setTimeout(() => {
@@ -355,7 +369,7 @@ async function showContextMenu(event, hash) {
                 </svg>
             </div>
             <div class="macos-alert-message">
-                <p class="macos-alert-title">字幕文件路径</p>
+                <p class="macos-alert-title">字幕文件路���</p>
                 <p class="macos-alert-text">${filePath}</p>
             </div>
             <div class="macos-alert-buttons">
@@ -475,6 +489,12 @@ async function loadHistoryFile(hash, info) {
         currentFileHash = hash;
         console.log('[渲染进程] 设置音频源:', info.file_path);
         audioPlayer.src = info.file_path;
+
+        // 更新总结按钮状态
+        const summaryButton = document.querySelector('.option-pill[data-translator="summary"]');
+        if (summaryButton) {
+            summaryButton.classList.remove('disabled');
+        }
 
         console.log('[渲染进程] 加载缓存数据...');
         const cachedData = await window.electronAPI.loadCachedData(hash);
@@ -1262,7 +1282,7 @@ function openSetApiKeyModal(translator) {
             <input type="text" id="api-key-input" class="macos-alert-input" placeholder="输入API Key">
         </div>
         <div class="macos-alert-buttons">
-            <button class="macos-alert-button" id="save-api-key-button">保存</button>
+            <button class="macos-alert-button" id="save-api-key-button">��存</button>
             <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
         </div>
     `;

@@ -162,6 +162,13 @@ body {
   font-weight: 450;
 }
 
+/* 添加禁用状态样式 */
+.option-pill.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
 .option-pill.active {
   background-color: var(--primary-color);
   color: white;
@@ -820,7 +827,7 @@ audio {
     box-shadow: 0 0 0 2px rgba(0, 122, 255, 0.2);
 }
 
-/* 菜��图标样式 */
+/* 菜单图标样式 */
 .menu-icon {
     width: 14px;
     height: 14px;
