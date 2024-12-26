@@ -173,27 +173,21 @@ async function createWindow() {
         currentConfig = JSON.parse(fs.readFileSync(configPath, 'utf8'));
       }
       
-      // 更新配置
-      // 处理所有可能的配置项
-      if (newConfig.hasOwnProperty('silicon_cloud_api_key')) {
-        currentConfig.silicon_cloud_api_key = newConfig.silicon_cloud_api_key;
-      }
-      if (newConfig.hasOwnProperty('silicon_cloud_model')) {
-        currentConfig.silicon_cloud_model = newConfig.silicon_cloud_model;
-      }
-      if (newConfig.hasOwnProperty('asr_api_key')) {
-        currentConfig.asr_api_key = newConfig.asr_api_key;
-      }
-      if (newConfig.hasOwnProperty('silicon_cloud_asr_model')) {
-        currentConfig.silicon_cloud_asr_model = newConfig.silicon_cloud_asr_model;
-      }
-      if (newConfig.hasOwnProperty('silicon_cloud_asr_api_key')) {
-        currentConfig.silicon_cloud_asr_api_key = newConfig.silicon_cloud_asr_api_key;
+      // 更新配置，保留所有字段
+      const updatedConfig = {
+        ...currentConfig,
+        ...newConfig
+      };
+      
+      // 确保目录存在
+      const configDir = path.dirname(configPath);
+      if (!fs.existsSync(configDir)) {
+        fs.mkdirSync(configDir, { recursive: true });
       }
       
       // 保存配置
-      fs.writeFileSync(configPath, JSON.stringify(currentConfig, null, 2));
-      config = currentConfig; // 更新内存中的配置
+      fs.writeFileSync(configPath, JSON.stringify(updatedConfig, null, 2));
+      config = updatedConfig; // 更新内存中的配置
       return config;
     } catch (error) {
       console.error('保存配置失败:', error);

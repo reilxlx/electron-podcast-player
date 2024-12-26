@@ -94,7 +94,7 @@ window.addEventListener('DOMContentLoaded', async () => {
 
     initDropZone();
     
-    // -------- 新���监听历史列表��动事件，实现滚动时显示滚动条，停止后隐藏 --------
+    // -------- 新监听历史列表动事件，实现滚动时显示滚动条，停止后隐藏 --------
     const historyList = document.querySelector('.history-list');
     let scrollTimeout;
     historyList.addEventListener('scroll', () => {
@@ -126,7 +126,7 @@ window.addEventListener('DOMContentLoaded', async () => {
         });
     });
 
-    // 添加右键菜单监听器到SiliconCloud按钮
+    // 添加键菜单监听器到SiliconCloud按钮
     const siliconCloudPill = document.querySelector('.option-pill[data-translator="silicon_cloud"]');
     
     siliconCloudPill.addEventListener('contextmenu', (e) => {
@@ -162,7 +162,7 @@ function updateFileList(audioIndex) {
             showContextMenu(e, hash);
         });
         
-        // 优化悬浮��示
+        // 优化悬浮示
         let tooltipTimeout;
         div.addEventListener('mouseenter', (e) => {
             tooltipTimeout = setTimeout(() => {
@@ -334,7 +334,7 @@ async function showContextMenu(event, hash) {
                     </div>
                 `;
                 
-                // 3秒后恢���原始内容
+                // 3秒后恢复原始内容
                 setTimeout(() => {
                     subtitleDisplay.innerHTML = originalContent;
                 }, 3000);
@@ -369,7 +369,7 @@ async function showContextMenu(event, hash) {
                 </svg>
             </div>
             <div class="macos-alert-message">
-                <p class="macos-alert-title">字幕文件路���</p>
+                <p class="macos-alert-title">字幕文件路</p>
                 <p class="macos-alert-text">${filePath}</p>
             </div>
             <div class="macos-alert-buttons">
@@ -746,7 +746,7 @@ function toggleTranslation() {
         }
     });
 
-    // 确保容器存在后再执行滚动
+    // 确保容器存在后执行滚动
     if (container) {
         requestAnimationFrame(() => {
             container.scrollTop = targetScrollTop;
@@ -758,7 +758,7 @@ function updateSubtitleHighlight(currentTime) {
     // 使用二分查找来找到当前时间对应的字幕索引
     let newIndex = findSubtitleIndex(currentTime);
 
-    // 只有��索引发生变化才更新高亮状态
+    // 只有索引发生变化才更新高亮状态
     if (newIndex !== currentSubtitleIndex) {
         const container = document.querySelector('.subtitle-container');
         if (!container) return;
@@ -994,19 +994,25 @@ async function initTranslatorSelection() {
     googlePill.classList.add('active');
 
     pills.forEach(pill => {
+        const translator = pill.getAttribute('data-translator');
+        
+        // 点击事件处理
         pill.addEventListener('click', async () => {
+            // 其他按钮保持原有行为
             pills.forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
         });
 
-        // 为 SiliconCloud 和 AssemblyAI 按添加右键菜单
-        if (pill.getAttribute('data-translator') === 'silicon_cloud' || 
-            pill.getAttribute('data-translator') === 'assembly_ai') {
+        // 右键菜单处理
+        if (translator === 'silicon_cloud' || 
+            translator === 'assembly_ai' ||
+            translator === 'summary') {
             pill.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
-                const translator = pill.getAttribute('data-translator');
                 if (translator === 'assembly_ai') {
                     openSetAssemblyAIKeyModal();
+                } else if (translator === 'summary') {
+                    showSummaryContextMenu(e);
                 } else {
                     showModelContextMenu(e, translator);
                 }
@@ -1129,7 +1135,7 @@ function showModelContextMenu(event, translator) {
     const menu = document.createElement('div');
     menu.className = 'context-menu';
 
-    // 添加"设置模型"选项，使用更简约的图标
+    // 添加"设置模型"选项，使用更简单的图标
     const setModelBtn = document.createElement('button');
     setModelBtn.className = 'context-menu-item';
     setModelBtn.innerHTML = `
@@ -1197,7 +1203,7 @@ function showModelContextMenu(event, translator) {
     menu.style.left = `${menuX}px`;
     menu.style.top = `${menuY}px`;
 
-    // 点击其��区域关闭菜单
+    // 点击其他区域关闭菜单
     const closeMenu = (e) => {
         if (!menu.contains(e.target)) {
             menu.remove();
@@ -1205,7 +1211,7 @@ function showModelContextMenu(event, translator) {
         }
     };
 
-    // 使用 requestAnimationFrame 确保菜单先显示再添加点击监听
+    // 用 requestAnimationFrame 确保菜单先显示再添加点击监听
     requestAnimationFrame(() => {
         document.addEventListener('click', closeMenu);
     });
@@ -1282,7 +1288,7 @@ function openSetApiKeyModal(translator) {
             <input type="text" id="api-key-input" class="macos-alert-input" placeholder="输入API Key">
         </div>
         <div class="macos-alert-buttons">
-            <button class="macos-alert-button" id="save-api-key-button">��存</button>
+            <button class="macos-alert-button" id="save-api-key-button">保存</button>
             <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
         </div>
     `;
@@ -1427,7 +1433,7 @@ async function showWordTranslationMenu(event, word) {
     menu.style.left = `${menuX}px`;
     menu.style.top = `${menuY}px`;
 
-    // 点击其他区域关闭��单
+    // 点击其他区域关闭菜单
     const closeMenu = (e) => {
         if (!menu.contains(e.target)) {
             menu.remove();
@@ -1518,4 +1524,175 @@ function showTranslationResult(word, translation) {
         </div>
     `;
     document.body.appendChild(modal);
+}
+
+// 添加总结按钮的右键菜单函数
+function showSummaryContextMenu(event) {
+    event.preventDefault();
+
+    // 移除已存在的上下文菜单
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+
+    // 添加"设置模型"选项
+    const setModelBtn = document.createElement('button');
+    setModelBtn.className = 'context-menu-item';
+    setModelBtn.innerHTML = `
+        <svg class="menu-icon" viewBox="0 0 16 16">
+            <path d="M13.5 8.5l-1.5 1.5-2-2L8.5 9.5l-2-2L5 9 3.5 7.5m7-3.5h3m-3 7h3m-12-7h3m-3 7h3m4-10v13" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-width="1.2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>设置模型</span>
+    `;
+
+    setModelBtn.addEventListener('click', () => {
+        menu.remove();
+        openSetSummaryModelModal();
+    });
+
+    // 添加"AI总结"选项
+    const summaryBtn = document.createElement('button');
+    summaryBtn.className = 'context-menu-item';
+    summaryBtn.innerHTML = `
+        <svg class="menu-icon" viewBox="0 0 16 16">
+            <path d="M2 4h12M2 8h8M2 12h10" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-width="1.2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>AI总结</span>
+    `;
+
+    summaryBtn.addEventListener('click', () => {
+        menu.remove();
+        // TODO: 实现AI总结功能
+    });
+
+    menu.appendChild(setModelBtn);
+    menu.appendChild(summaryBtn);
+    document.body.appendChild(menu);
+
+    // 设置菜单位置
+    const rect = event.target.getBoundingClientRect();
+    const x = event.clientX;
+    const y = event.clientY;
+
+    // 确保菜单不会超出窗口边界
+    const menuRect = menu.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let menuX = x;
+    let menuY = y;
+
+    if (x + menuRect.width > windowWidth) {
+        menuX = windowWidth - menuRect.width;
+    }
+
+    if (y + menuRect.height > windowHeight) {
+        menuY = windowHeight - menuRect.height;
+    }
+
+    menu.style.left = `${menuX}px`;
+    menu.style.top = `${menuY}px`;
+
+    // 点击其他区域关闭菜单
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+
+    requestAnimationFrame(() => {
+        document.addEventListener('click', closeMenu);
+    });
+}
+
+// 修改设置总结模型的模态窗口函数
+function openSetSummaryModelModal() {
+    const existingModal = document.querySelector('.macos-alert');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'macos-alert';
+    modal.innerHTML = `
+        <div class="macos-alert-icon">
+            <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">设置总结模型</p>
+            <input type="text" id="summary-model-input" class="macos-alert-input" placeholder="输入模型名称，例如：Qwen/Qwen2.5-7B-Instruct">
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" id="save-summary-model-button">保存</button>
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 获取当前模型名称并填充到输入框中
+    window.electronAPI.getConfig().then(config => {
+        const modelInput = document.getElementById('summary-model-input');
+        if (config && config.silicon_cloud_summary_model) {
+            modelInput.value = config.silicon_cloud_summary_model;
+        }
+    }).catch(error => {
+        console.error('获取当前总结模型名称失败:', error);
+    });
+
+    // 处理保存按钮点击
+    const saveButton = document.getElementById('save-summary-model-button');
+    saveButton.addEventListener('click', async () => {
+        const modelInput = document.getElementById('summary-model-input').value.trim();
+        if (modelInput) {
+            try {
+                // 先获取当前配置
+                const currentConfig = await window.electronAPI.getConfig();
+                // 更新配置
+                const newConfig = {
+                    ...currentConfig,
+                    silicon_cloud_summary_model: modelInput
+                };
+                // 保存更新后的配置
+                await window.electronAPI.saveConfig(newConfig);
+                modal.remove();
+                
+                // 显示成功提示
+                const alertBox = document.createElement('div');
+                alertBox.className = 'macos-alert';
+                alertBox.innerHTML = `
+                    <div class="macos-alert-icon">
+                        <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+                    </div>
+                    <div class="macos-alert-message">
+                        <p class="macos-alert-title">设置成功</p>
+                        <p class="macos-alert-text">总结模型已更新为：${modelInput}</p>
+                    </div>
+                    <div class="macos-alert-buttons">
+                        <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">确定</button>
+                    </div>
+                `;
+                document.body.appendChild(alertBox);
+            } catch (error) {
+                console.error('保存总结模型失败:', error);
+                alert('保存总结模型失败，请重试');
+            }
+        } else {
+            alert('模型名称不能为空');
+        }
+    });
 }
