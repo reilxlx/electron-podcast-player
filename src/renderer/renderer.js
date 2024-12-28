@@ -537,7 +537,7 @@ async function loadHistoryFile(hash, info) {
             const subtitleDisplay = document.getElementById('subtitle-display');
             subtitleDisplay.innerHTML = `
                 <div class="error-message">
-                    <p>加载字幕失败: 未找到缓存数据</p>
+                    <p>���载字幕失败: 未找到缓存数据</p>
                 </div>
             `;
         }
@@ -1325,7 +1325,7 @@ function openSetApiKeyModal(translator) {
     });
 }
 
-// 添加 AssemblyAI API Key 设置模态窗口函数
+// ���加 AssemblyAI API Key 设置模态窗口函数
 function openSetAssemblyAIKeyModal() {
     const existingModal = document.querySelector('.macos-alert');
     if (existingModal) {
@@ -1574,9 +1574,59 @@ function showSummaryContextMenu(event) {
         <span>AI总结</span>
     `;
 
-    summaryBtn.addEventListener('click', () => {
+    summaryBtn.addEventListener('click', async () => {
         menu.remove();
-        // TODO: 实现AI总结功能
+        
+        // 检查是否有字幕数据
+        if (!subtitles || subtitles.length === 0) {
+            alert('没有可用的字幕内容');
+            return;
+        }
+
+        try {
+            // 显示加载状态
+            const loadingModal = document.createElement('div');
+            loadingModal.className = 'macos-alert';
+            loadingModal.innerHTML = `
+                <div class="macos-alert-icon">
+                    <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+                </div>
+                <div class="macos-alert-message">
+                    <p class="macos-alert-title">正在生成内容总结</p>
+                    <p class="macos-alert-text">请稍候...</p>
+                </div>
+            `;
+            document.body.appendChild(loadingModal);
+
+            // 调用总结API
+            const summary = await window.electronAPI.summarizeContent({
+                subtitles: subtitles
+            });
+
+            // 移除加载状态
+            loadingModal.remove();
+
+            // 显示总结结果
+            const resultModal = document.createElement('div');
+            resultModal.className = 'macos-alert';
+            resultModal.innerHTML = `
+                <div class="macos-alert-icon">
+                    <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+                </div>
+                <div class="macos-alert-message">
+                    <p class="macos-alert-title">内容总结</p>
+                    <p class="macos-alert-text" style="white-space: pre-wrap; text-align: left;">${summary}</p>
+                </div>
+                <div class="macos-alert-buttons">
+                    <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">关闭</button>
+                </div>
+            `;
+            document.body.appendChild(resultModal);
+
+        } catch (error) {
+            console.error('总结失败:', error);
+            alert(`总结失败: ${error.message}`);
+        }
     });
 
     menu.appendChild(setModelBtn);

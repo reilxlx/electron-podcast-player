@@ -6,6 +6,7 @@ const {
 } = require('./src/services/fileService');
 const { transcribeAudio } = require('./src/services/transcriptionService');
 const { translateTextBatch } = require('./src/services/translationService');
+const { summarizeContent } = require('./src/services/summaryService');
 const { parseTranscript, generateSubtitleTimes } = require('./src/services/subtitleParser');
 const { AssemblyAI } = require('assemblyai');
 const fs = require('fs');
@@ -121,7 +122,7 @@ async function createWindow() {
       console.log('[主进程] 通知渲染进程重新加载音频索引');
       mainWindow.webContents.send('audio-index-updated');
 
-      console.log('[主进程] 音频处理完成');
+      console.log('[主进程] 音频转录完成');
       return subtitleData;
     } catch (error) {
       console.error('[主进程] 音频转录失败:', error);
@@ -252,7 +253,7 @@ ipcMain.handle('get-silicon-cloud-api-key', async () => {
     
     // 检查文件是否存在
     if (!fs.existsSync(configPath)) {
-      console.warn('配置文件不存在，将创建默认配置');
+      console.warn('配���文件不存在，将创建默认配置');
       // 创建默认配置
       const defaultConfig = {
         silicon_cloud_api_key: '',
@@ -300,6 +301,29 @@ ipcMain.handle('set-silicon-cloud-model', async (event, { translator, model }) =
         console.error('设置SiliconCloud模型失败:', error);
         return { success: false, message: error.message };
     }
+});
+
+// 添加总结功能的IPC处理器
+ipcMain.handle('summarize-content', async (event, { subtitles }) => {
+  try {
+    // 获取配置
+    const config = loadConfig();
+    if (!config.silicon_cloud_api_key || !config.silicon_cloud_summary_model) {
+      throw new Error('请先配置SiliconCloud API Key和总结模型');
+    }
+
+    // 直接传递字幕数据进行总结
+    const summary = await summarizeContent(
+      subtitles,
+      config.silicon_cloud_api_key,
+      config.silicon_cloud_summary_model
+    );
+
+    return summary;
+  } catch (error) {
+    console.error('内容总结失败:', error);
+    throw error;
+  }
 });
 
 // 在 createWindow 函数开始处添加
