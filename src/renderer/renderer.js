@@ -537,7 +537,7 @@ async function loadHistoryFile(hash, info) {
             const subtitleDisplay = document.getElementById('subtitle-display');
             subtitleDisplay.innerHTML = `
                 <div class="error-message">
-                    <p>���载字幕失败: 未找到缓存数据</p>
+                    <p>加载字幕失败: 未找到缓存数据</p>
                 </div>
             `;
         }
@@ -1006,13 +1006,16 @@ async function initTranslatorSelection() {
         // 右键菜单处理
         if (translator === 'silicon_cloud' || 
             translator === 'assembly_ai' ||
-            translator === 'summary') {
+            translator === 'summary' ||
+            translator === 'tts') {  // 添加tts条件
             pill.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 if (translator === 'assembly_ai') {
                     openSetAssemblyAIKeyModal();
                 } else if (translator === 'summary') {
                     showSummaryContextMenu(e);
+                } else if (translator === 'tts') {
+                    showTTSContextMenu(e);  // 添加TTS右键菜单处理
                 } else {
                     showModelContextMenu(e, translator);
                 }
@@ -1325,7 +1328,7 @@ function openSetApiKeyModal(translator) {
     });
 }
 
-// ���加 AssemblyAI API Key 设置模态窗口函数
+// 添加AssemblyAI API Key 设置模态窗口函数
 function openSetAssemblyAIKeyModal() {
     const existingModal = document.querySelector('.macos-alert');
     if (existingModal) {
@@ -1740,6 +1743,172 @@ function openSetSummaryModelModal() {
             } catch (error) {
                 console.error('保存总结模型失败:', error);
                 alert('保存总结模型失败，请重试');
+            }
+        } else {
+            alert('模型名称不能为空');
+        }
+    });
+}
+
+// 添加TTS右键菜单函数
+function showTTSContextMenu(event) {
+    event.preventDefault();
+
+    // 移除已存在的上下文菜单
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+
+    // 添加"设置模型"选项
+    const setModelBtn = document.createElement('button');
+    setModelBtn.className = 'context-menu-item';
+    setModelBtn.innerHTML = `
+        <svg class="menu-icon" viewBox="0 0 16 16">
+            <path d="M13.5 8.5l-1.5 1.5-2-2L8.5 9.5l-2-2L5 9 3.5 7.5m7-3.5h3m-3 7h3m-12-7h3m-3 7h3m4-10v13" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-width="1.2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>设置模型</span>
+    `;
+
+    setModelBtn.addEventListener('click', () => {
+        menu.remove();
+        openSetTTSModelModal();
+    });
+
+    // 添加"TTS播放"选项
+    const ttsPlayBtn = document.createElement('button');
+    ttsPlayBtn.className = 'context-menu-item';
+    ttsPlayBtn.innerHTML = `
+        <svg class="menu-icon" viewBox="0 0 16 16">
+            <path d="M3 3l10 5-10 5V3z" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-width="1.2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>TTS播放</span>
+    `;
+
+    menu.appendChild(setModelBtn);
+    menu.appendChild(ttsPlayBtn);
+    document.body.appendChild(menu);
+
+    // 设置菜单位置
+    const rect = event.target.getBoundingClientRect();
+    const x = event.clientX;
+    const y = event.clientY;
+
+    // 确保菜单不会超出窗口边界
+    const menuRect = menu.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let menuX = x;
+    let menuY = y;
+
+    if (x + menuRect.width > windowWidth) {
+        menuX = windowWidth - menuRect.width;
+    }
+
+    if (y + menuRect.height > windowHeight) {
+        menuY = windowHeight - menuRect.height;
+    }
+
+    menu.style.left = `${menuX}px`;
+    menu.style.top = `${menuY}px`;
+
+    // 点击其他区域关闭菜单
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+
+    requestAnimationFrame(() => {
+        document.addEventListener('click', closeMenu);
+    });
+}
+
+// 添加设置TTS模型的模态窗口函数
+function openSetTTSModelModal() {
+    const existingModal = document.querySelector('.macos-alert');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'macos-alert';
+    modal.innerHTML = `
+        <div class="macos-alert-icon">
+            <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">设置TTS模型</p>
+            <input type="text" id="tts-model-input" class="macos-alert-input" placeholder="输入模型名称">
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" id="save-tts-model-button">保存</button>
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 获取当前TTS模型名称并填充到输入框中
+    window.electronAPI.getConfig().then(config => {
+        const modelInput = document.getElementById('tts-model-input');
+        if (config && config.silicon_cloud_TTS_name) {
+            modelInput.value = config.silicon_cloud_TTS_name;
+        }
+    }).catch(error => {
+        console.error('获取当前TTS模型名称失败:', error);
+    });
+
+    // 处理保存按钮点击
+    const saveButton = document.getElementById('save-tts-model-button');
+    saveButton.addEventListener('click', async () => {
+        const modelInput = document.getElementById('tts-model-input').value.trim();
+        if (modelInput) {
+            try {
+                // 先获取当前配置
+                const currentConfig = await window.electronAPI.getConfig();
+                // 更新配置
+                const newConfig = {
+                    ...currentConfig,
+                    silicon_cloud_TTS_name: modelInput
+                };
+                // 保存更新后的配置
+                await window.electronAPI.saveConfig(newConfig);
+                modal.remove();
+                
+                // 显示成功提示
+                const alertBox = document.createElement('div');
+                alertBox.className = 'macos-alert';
+                alertBox.innerHTML = `
+                    <div class="macos-alert-icon">
+                        <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+                    </div>
+                    <div class="macos-alert-message">
+                        <p class="macos-alert-title">设置成功</p>
+                        <p class="macos-alert-text">TTS模型已更新为：${modelInput}</p>
+                    </div>
+                    <div class="macos-alert-buttons">
+                        <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">确定</button>
+                    </div>
+                `;
+                document.body.appendChild(alertBox);
+            } catch (error) {
+                console.error('保存TTS模型失败:', error);
+                alert('保存TTS模型失败，请重试');
             }
         } else {
             alert('模型名称不能为空');
