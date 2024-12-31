@@ -23,6 +23,14 @@
 - 单词级别翻译（双击单词获取释义）
 - 智能缓存翻译结果，提高响应速度
 
+### 💾 TTS语音合成
+- 支持中文TTS播放功能
+- 使用SiliconCloud的语音合成服务
+- 支持自定义TTS模型选择
+- 逐句播放翻译后的中文内容
+- 播放时自动高亮当前朗读的字幕
+- 支持随时停止/继续播放
+
 ### 💾 数据管理
 - 自动保存播放历史
 - 字幕文件本地缓存
@@ -66,7 +74,8 @@ touch podcast_data/config.json
   "asr_api_key": "your_asr_api_key_here",
   "silicon_cloud_api_key": "your_silicon_cloud_api_key_here",
   "silicon_cloud_model": "Qwen/Qwen2.5-7B-Instruct",
-  "silicon_cloud_summary_model": "THUDM/glm-4-9b-chat"
+  "silicon_cloud_summary_model": "THUDM/glm-4-9b-chat",
+  "silicon_cloud_TTS_name": "RVC-Boss/GPT-SoVITS"
 }
 ```
 
@@ -111,6 +120,13 @@ npm run build:mac
    - 双击单词获取翻译
    - 字幕自动跟随音频滚动
 
+5. **TTS播放**
+   - 右键点击"中文TTS"按钮
+   - 可选择"设置模型"配置TTS模型
+   - 点击"TTS播放"开始朗读中文翻译
+   - 再次点击可停止播放
+   - 播放时自动高亮当前朗读内容
+
 ## 🔧 项目结构
 
 ```
@@ -129,6 +145,7 @@ src/
     ├── transcriptionService.js  # 语音转写
     ├── translationService.js   # 翻译服务
     └── summaryService.js      # 内容总结
+    └── ttsService.js         # TTS语音合成
 ```
 
 ## ⚠️ 注意事项
