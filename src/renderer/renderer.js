@@ -9,6 +9,9 @@ let currentWordIndex = -1;
 let wordPositions = [];
 let cachedData = null;
 let translationInProgress = false;
+let currentTTSIndex = -1;
+let isTTSPlaying = false;
+let ttsAudioQueue = [];
 
 // 在文件顶部添加IPC监听器
 window.electronAPI.onTranslationProgress((data) => {
@@ -43,6 +46,12 @@ window.addEventListener('DOMContentLoaded', async () => {
     // 初始化总结按钮状态
     const summaryButton = document.querySelector('.option-pill[data-translator="summary"]');
     summaryButton.classList.add('disabled');
+
+    // 初始化TTS按钮状态
+    const ttsButton = document.querySelector('.option-pill[data-translator="tts"]');
+    if (ttsButton) {
+        ttsButton.classList.add('disabled');
+    }
 
     // 监听音频加载事件
     audioPlayer.addEventListener('loadedmetadata', () => {
@@ -516,6 +525,17 @@ async function loadHistoryFile(hash, info) {
             if (!hasTranslations) {
                 translationToggle.checked = false;
                 showTranslation = false;
+            }
+            
+            // 更新TTS按钮状态 - 确保在这里正确设置
+            const ttsButton = document.querySelector('.option-pill[data-translator="tts"]');
+            if (ttsButton) {
+                console.log('[渲染进程] 更新TTS按钮状态, 是否有翻译:', hasTranslations);
+                if (hasTranslations) {
+                    ttsButton.classList.remove('disabled');
+                } else {
+                    ttsButton.classList.add('disabled');
+                }
             }
             
             if (hasTranslations) {
@@ -998,6 +1018,11 @@ async function initTranslatorSelection() {
         
         // 点击事件处理
         pill.addEventListener('click', async () => {
+            // 移除TTS按钮的点击播放逻辑，只保留右键菜单功能
+            if (translator === 'tts') {
+                return; // TTS按钮点击不做任何操作
+            }
+            
             // 其他按钮保持原有行为
             pills.forEach(p => p.classList.remove('active'));
             pill.classList.add('active');
@@ -1007,7 +1032,7 @@ async function initTranslatorSelection() {
         if (translator === 'silicon_cloud' || 
             translator === 'assembly_ai' ||
             translator === 'summary' ||
-            translator === 'tts') {  // 添加tts条件
+            translator === 'tts') {
             pill.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 if (translator === 'assembly_ai') {
@@ -1015,7 +1040,7 @@ async function initTranslatorSelection() {
                 } else if (translator === 'summary') {
                     showSummaryContextMenu(e);
                 } else if (translator === 'tts') {
-                    showTTSContextMenu(e);  // 添加TTS右键菜单处理
+                    showTTSContextMenu(e);
                 } else {
                     showModelContextMenu(e, translator);
                 }
@@ -1802,6 +1827,12 @@ function openSetSummaryModelModal() {
 function showTTSContextMenu(event) {
     event.preventDefault();
 
+    // 检查按钮是否被禁用
+    const ttsButton = document.querySelector('.option-pill[data-translator="tts"]');
+    if (ttsButton && ttsButton.classList.contains('disabled')) {
+        return; // 如果按钮被禁用，不显示菜单
+    }
+
     // 移除已存在的上下文菜单
     const existingMenu = document.querySelector('.context-menu');
     if (existingMenu) {
@@ -1843,8 +1874,13 @@ function showTTSContextMenu(event) {
                   stroke-linecap="round" 
                   stroke-linejoin="round"/>
         </svg>
-        <span>TTS播放</span>
+        <span>${isTTSPlaying ? '停止播放' : 'TTS播放'}</span>
     `;
+
+    ttsPlayBtn.addEventListener('click', async () => {
+        menu.remove();
+        await handleTTSPlay();
+    });
 
     menu.appendChild(setModelBtn);
     menu.appendChild(ttsPlayBtn);
@@ -1962,4 +1998,142 @@ function openSetTTSModelModal() {
             alert('模型名称不能为空');
         }
     });
+}
+
+// 添加TTS播放处理函数
+async function handleTTSPlay() {
+    console.log('[渲染进程] 开始TTS播放处理');
+    if (isTTSPlaying) {
+        console.log('[渲染进程] 停止当前TTS播放');
+        stopTTSPlayback();
+        return;
+    }
+
+    try {
+        // 获取配置
+        const config = await window.electronAPI.getConfig();
+        if (!config.silicon_cloud_api_key || !config.silicon_cloud_TTS_name) {
+            throw new Error('请先配置SiliconCloud API Key和TTS模型');
+        }
+
+        // 获取所有中文翻译文本
+        const translationTexts = [];
+        for (let i = 0; i < subtitles.length; i++) {
+            if (translations[i] && translations[i].text) {
+                translationTexts.push({
+                    index: i,
+                    text: translations[i].text
+                });
+            }
+        }
+
+        console.log('[渲染进程] 找到的中文翻译数量:', translationTexts.length);
+
+        if (translationTexts.length === 0) {
+            throw new Error('没有找到可用的中文翻译');
+        }
+
+        // 开始播放
+        isTTSPlaying = true;
+        currentTTSIndex = 0;
+        ttsAudioQueue = [];
+
+        // 更新按钮状态
+        const ttsButton = document.querySelector('.option-pill[data-translator="tts"]');
+        ttsButton.classList.add('active');
+
+        console.log('[渲染进程] 开始播放第一段TTS');
+        // 开始播放第一段
+        await playNextTTSSegment(translationTexts, config.silicon_cloud_api_key, config.silicon_cloud_TTS_name);
+
+    } catch (error) {
+        console.error('[渲染进程] TTS播放失败:', error);
+        alert(error.message);
+        stopTTSPlayback();
+    }
+}
+
+// 添加播放下一段TTS的函数
+async function playNextTTSSegment(translationTexts, apiKey, ttsModel) {
+    if (!isTTSPlaying || currentTTSIndex >= translationTexts.length) {
+        stopTTSPlayback();
+        return;
+    }
+
+    try {
+        const currentText = translationTexts[currentTTSIndex];
+        
+        // 调用TTS API
+        const audioBuffer = await window.electronAPI.textToSpeech({
+            text: currentText.text,
+            apiKey: apiKey,
+            ttsModel: ttsModel
+        });
+
+        // 将音频数据转换为Blob
+        const audioBlob = new Blob([audioBuffer], { type: 'audio/mp3' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        
+        // 创建音频元素
+        const audio = new Audio(audioUrl);
+        ttsAudioQueue.push(audio);
+
+        // 监听播放结束事件
+        audio.addEventListener('ended', () => {
+            URL.revokeObjectURL(audioUrl);
+            currentTTSIndex++;
+            playNextTTSSegment(translationTexts, apiKey, ttsModel);
+        });
+
+        // 高亮当前播放的字幕
+        highlightCurrentTTSSubtitle(currentText.index);
+
+        // 开始播放
+        await audio.play();
+
+    } catch (error) {
+        console.error('播放TTS段落失败:', error);
+        stopTTSPlayback();
+    }
+}
+
+// 添加停止TTS播放的函数
+function stopTTSPlayback() {
+    isTTSPlaying = false;
+    
+    // 停止所有正在播放的音频
+    ttsAudioQueue.forEach(audio => {
+        audio.pause();
+        audio.currentTime = 0;
+    });
+    ttsAudioQueue = [];
+
+    // 移除字幕高亮
+    const activeSubtitle = document.querySelector('.subtitle-block.tts-active');
+    if (activeSubtitle) {
+        activeSubtitle.classList.remove('tts-active');
+    }
+
+    // 更新按钮状态
+    const ttsButton = document.querySelector('.option-pill[data-translator="tts"]');
+    if (ttsButton) {
+        ttsButton.classList.remove('active');
+    }
+}
+
+// 添加高亮当前TTS字幕的函数
+function highlightCurrentTTSSubtitle(index) {
+    // 移除之前的高亮
+    const previousActive = document.querySelector('.subtitle-block.tts-active');
+    if (previousActive) {
+        previousActive.classList.remove('tts-active');
+    }
+
+    // 添加新的高亮
+    const currentSubtitle = document.querySelector(`.subtitle-block[data-index="${index}"]`);
+    if (currentSubtitle) {
+        currentSubtitle.classList.add('tts-active');
+        // 滚动到当前字幕
+        currentSubtitle.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
 }

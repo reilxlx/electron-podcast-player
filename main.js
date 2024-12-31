@@ -10,6 +10,7 @@ const { summarizeContent } = require('./src/services/summaryService');
 const { parseTranscript, generateSubtitleTimes } = require('./src/services/subtitleParser');
 const { AssemblyAI } = require('assemblyai');
 const fs = require('fs');
+const { textToSpeech } = require('./src/services/ttsService');
 
 let mainWindow = null;
 let audioIndex = {};
@@ -245,6 +246,16 @@ async function createWindow() {
     const subtitlePath = path.join(getPodcastDataPath(), 'subtitles', `${hash}.json`);
     return subtitlePath;
   });
+
+  ipcMain.handle('text-to-speech', async (event, { text, apiKey, ttsModel }) => {
+    try {
+        const audioBuffer = await textToSpeech(text, apiKey, ttsModel);
+        return audioBuffer;
+    } catch (error) {
+        console.error('TTS转换失败:', error);
+        throw error;
+    }
+  });
 }
 // 添加IPC处理器
 ipcMain.handle('get-silicon-cloud-api-key', async () => {
@@ -253,7 +264,7 @@ ipcMain.handle('get-silicon-cloud-api-key', async () => {
     
     // 检查文件是否存在
     if (!fs.existsSync(configPath)) {
-      console.warn('配���文件不存在，将创建默认配置');
+      console.warn('配置文件不存在，将创建默认配置');
       // 创建默认配置
       const defaultConfig = {
         silicon_cloud_api_key: '',

@@ -1117,3 +1117,22 @@ audio {
     color: rgba(0, 0, 0, 0.4);
     font-weight: 400;
 }
+
+/* 添加TTS播放时的字幕高亮样式 */
+.subtitle-block.tts-active {
+    background-color: rgba(0, 122, 255, 0.1);
+    border-left: 3px solid var(--primary-color);
+}
+
+/* TTS按钮禁用状态 */
+.option-pill[data-translator="tts"].disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* TTS播放状态 */
+.option-pill[data-translator="tts"].active {
+    background-color: var(--primary-color);
+    color: white;
+}

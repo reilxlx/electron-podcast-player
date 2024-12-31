@@ -38,5 +38,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getSubtitleFilePath: (hash) => ipcRenderer.invoke('get-subtitle-filepath', hash),
   getSiliconCloudModel: () => ipcRenderer.invoke('get-silicon-cloud-model'),
-  setSiliconCloudModel: (translator, model) => ipcRenderer.invoke('set-silicon-cloud-model', { translator, model })
+  setSiliconCloudModel: (translator, model) => ipcRenderer.invoke('set-silicon-cloud-model', { translator, model }),
+
+  textToSpeech: (params) => ipcRenderer.invoke('text-to-speech', params)
 });
