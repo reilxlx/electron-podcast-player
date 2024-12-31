@@ -1262,7 +1262,23 @@ function openSetModelModal(translator) {
             try {
                 await window.electronAPI.setSiliconCloudModel(translator, modelInput);
                 modal.remove();
-                alert('模型名称已保存');
+                
+                // 显示成功提示
+                const alertBox = document.createElement('div');
+                alertBox.className = 'macos-alert';
+                alertBox.innerHTML = `
+                    <div class="macos-alert-icon">
+                        <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+                    </div>
+                    <div class="macos-alert-message">
+                        <p class="macos-alert-title">设置成功</p>
+                        <p class="macos-alert-text">翻译模型已更新为：${modelInput}</p>
+                    </div>
+                    <div class="macos-alert-buttons">
+                        <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">确定</button>
+                    </div>
+                `;
+                document.body.appendChild(alertBox);
             } catch (error) {
                 console.error('保存模型失败:', error);
                 alert('保存模型失败，请重试');
@@ -1317,7 +1333,23 @@ function openSetApiKeyModal(translator) {
                     silicon_cloud_api_key: apiKeyInput
                 });
                 modal.remove();
-                alert('API Key已保存');
+                
+                // 显示成功提示
+                const alertBox = document.createElement('div');
+                alertBox.className = 'macos-alert';
+                alertBox.innerHTML = `
+                    <div class="macos-alert-icon">
+                        <img src="assets/siliconcloud.png" width="24" height="24" alt="SiliconCloud Logo">
+                    </div>
+                    <div class="macos-alert-message">
+                        <p class="macos-alert-title">设置成功</p>
+                        <p class="macos-alert-text">API Key已更新</p>
+                    </div>
+                    <div class="macos-alert-buttons">
+                        <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">确定</button>
+                    </div>
+                `;
+                document.body.appendChild(alertBox);
             } catch (error) {
                 console.error('保存API Key失败:', error);
                 alert('保存API Key失败，请重试');
@@ -1372,7 +1404,23 @@ function openSetAssemblyAIKeyModal() {
                     asr_api_key: asrKeyInput
                 });
                 modal.remove();
-                alert('ASR API Key已保存');
+                
+                // 显示成功提示
+                const alertBox = document.createElement('div');
+                alertBox.className = 'macos-alert';
+                alertBox.innerHTML = `
+                    <div class="macos-alert-icon">
+                        <img src="assets/assemblyai.png" width="24" height="24" alt="AssemblyAI Logo">
+                    </div>
+                    <div class="macos-alert-message">
+                        <p class="macos-alert-title">设置成功</p>
+                        <p class="macos-alert-text">API Key已更新</p>
+                    </div>
+                    <div class="macos-alert-buttons">
+                        <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">确定</button>
+                    </div>
+                `;
+                document.body.appendChild(alertBox);
             } catch (error) {
                 console.error('保存ASR API Key失败:', error);
                 alert('保存ASR API Key失败，请重试');
