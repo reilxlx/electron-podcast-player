@@ -247,9 +247,9 @@ async function createWindow() {
     return subtitlePath;
   });
 
-  ipcMain.handle('text-to-speech', async (event, { text, apiKey, ttsModel }) => {
+  ipcMain.handle('text-to-speech', async (event, { text, apiKey, ttsModel, index }) => {
     try {
-        const audioBuffer = await textToSpeech(text, apiKey, ttsModel);
+        const audioBuffer = await textToSpeech(text, apiKey, ttsModel, index);
         return audioBuffer;
     } catch (error) {
         console.error('TTS转换失败:', error);

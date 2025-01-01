@@ -5,10 +5,11 @@ const fetch = require('node-fetch');
  * @param {string} text 要转换的中文文本
  * @param {string} apiKey SiliconCloud API密钥
  * @param {string} ttsModel TTS模型名称
+ * @param {number} index 句子的索引，用于决定使用哪个声音
  * @param {string} base_url API基础URL
  * @returns {Promise<Buffer>} 音频数据的Buffer
  */
-async function textToSpeech(text, apiKey, ttsModel, base_url = 'https://api.siliconflow.cn/v1') {
+async function textToSpeech(text, apiKey, ttsModel, index = 0, base_url = 'https://api.siliconflow.cn/v1') {
     try {
         if (!text) {
             throw new Error("[TTS] 错误: 文本内容为空");
@@ -23,10 +24,14 @@ async function textToSpeech(text, apiKey, ttsModel, base_url = 'https://api.sili
         console.log(`[TTS] 开始转换文本: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`);
         console.log('[TTS] 使用的模型:', ttsModel);
 
+        // 根据索引的奇偶性选择声音
+        const voice = index % 2 === 0 ? 'alex' : 'anna';
+        console.log(`[TTS] 使用的声音: ${voice}`);
+
         const payload = {
             model: ttsModel,
             input: text,
-            voice: `${ttsModel}:anna`,
+            voice: `${ttsModel}:${voice}`,
             response_format: "mp3",
             sample_rate: 8000,
             stream: false,

@@ -2074,7 +2074,8 @@ async function playNextTTSSegment(translationTexts, apiKey, ttsModel) {
         const audioBuffer = await window.electronAPI.textToSpeech({
             text: currentText.text,
             apiKey: apiKey,
-            ttsModel: ttsModel
+            ttsModel: ttsModel,
+            index: currentTTSIndex  // 添加索引参数
         });
 
         // 将音频数据转换为Blob
