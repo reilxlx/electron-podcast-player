@@ -1020,7 +1020,14 @@ async function initTranslatorSelection() {
         pill.addEventListener('click', async () => {
             // 移除TTS按钮的点击播放逻辑，只保留右键菜单功能
             if (translator === 'tts') {
-                return; // TTS按钮点击不做任何操作
+                // 切换TTS按钮的选中状态
+                pills.forEach(p => {
+                    if (p !== pill) {
+                        p.classList.remove('active');
+                    }
+                });
+                pill.classList.toggle('active');
+                return;
             }
             
             // 其他按钮保持原有行为
