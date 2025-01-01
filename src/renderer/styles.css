@@ -147,9 +147,155 @@ body {
 
 .translation-selector {
   display: flex;
-  gap: 8px;
+  gap: 16px;
   align-items: center;
   height: 32px;
+}
+
+/* 分段控制器样式 */
+.segmented-control {
+  display: flex;
+  background-color: var(--hover-color);
+  border-radius: 8px;
+  padding: 2px;
+  gap: 2px;
+}
+
+.segmented-control .option-pill {
+  border-radius: 6px;
+  padding: 4px 12px;
+  font-size: 13px;
+  background-color: transparent;
+  color: var(--text-primary);
+  transition: all var(--transition-speed) ease;
+}
+
+.segmented-control .option-pill:hover:not(.active) {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.segmented-control .option-pill.active {
+  background-color: var(--background-color);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 工具按钮样式 */
+.tool-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.tool-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background-color: var(--hover-color);
+  color: var(--text-primary);
+  font-size: 13px;
+  transition: all var(--transition-speed) ease;
+}
+
+.tool-button svg {
+  width: 14px;
+  height: 14px;
+  opacity: 0.8;
+  transition: opacity var(--transition-speed) ease;
+}
+
+.tool-button:hover {
+  background-color: var(--active-color);
+}
+
+.tool-button.active {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+.tool-button.active svg {
+  opacity: 1;
+  stroke: white;
+}
+
+.tool-button.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 开关样式优化 */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  margin-top: 0;
+  padding: 4px;
+  border-radius: 6px;
+  transition: background-color var(--transition-speed) ease;
+}
+
+.toggle:hover {
+  background-color: var(--hover-color);
+}
+
+.toggle-slider {
+  position: relative;
+  width: 36px;
+  height: 20px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  transition: all var(--transition-speed) ease;
+}
+
+.toggle input:checked + .toggle-slider {
+  background-color: var(--primary-color);
+}
+
+.toggle-slider:before {
+  content: "";
+  position: absolute;
+  height: 16px;
+  width: 16px;
+  left: 2px;
+  bottom: 2px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform var(--transition-speed) ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.toggle input:checked + .toggle-slider:before {
+  transform: translateX(16px);
+}
+
+.toggle input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-label {
+  font-size: 13px;
+  color: var(--text-primary);
+  font-weight: 450;
+  user-select: none;
+}
+
+/* 禁用状态样式优化 */
+.toggle input[type="checkbox"]:disabled + .toggle-slider {
+  background-color: var(--border-color);
+  cursor: not-allowed;
+}
+
+.toggle input[type="checkbox"]:disabled ~ .toggle-label {
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.toggle input[type="checkbox"]:disabled + .toggle-slider:before {
+  background-color: #FFFFFF;
+  cursor: not-allowed;
 }
 
 .option-pill {
@@ -178,64 +324,6 @@ body {
   display: flex;
   align-items: center;
   gap: 16px;
-}
-
-/* 开关样式 */
-.toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-  margin-top: 3px;
-}
-
-.toggle-slider {
-  position: relative;
-  width: 36px;
-  height: 20px;
-  background-color: var(--hover-color);
-  border-radius: 10px;
-  transition: background-color var(--transition-speed) ease;
-}
-
-.toggle input:checked + .toggle-slider {
-  background-color: var(--primary-color);
-}
-
-.toggle-slider:before {
-  content: "";
-  position: absolute;
-  height: 16px;
-  width: 16px;
-  left: 2px;
-  bottom: 2px;
-  background-color: white;
-  border-radius: 50%;
-  transition: transform var(--transition-speed) ease;
-}
-
-.toggle input:checked + .toggle-slider:before {
-  transform: translateX(16px);
-}
-
-.toggle input {
-  display: none;
-}
-
-/* 翻译开关禁用状态样式 */
-.toggle input[type="checkbox"]:disabled + .toggle-slider {
-  background-color: var(--border-color);
-  cursor: not-allowed;
-}
-
-.toggle input[type="checkbox"]:disabled ~ .toggle-label {
-  color: var(--text-secondary);
-  cursor: not-allowed;
-}
-
-.toggle input[type="checkbox"]:disabled + .toggle-slider:before {
-  background-color: #FFFFFF;
-  cursor: not-allowed;
 }
 
 /* 字幕区域 */
@@ -1032,7 +1120,7 @@ audio {
 /* 调整翻译选项按钮组的布局 */
 .translation-selector {
     display: flex;
-    gap: 8px;
+    gap: 16px;
     align-items: center;
     height: 32px; /* 固定高度 */
 }

@@ -44,11 +44,25 @@
                 </div>
                 <div class="translation-options">
                     <div class="translation-selector">
-                        <div class="option-pill" data-translator="google">Google翻译</div>
-                        <div class="option-pill" data-translator="silicon_cloud">SiliconCloud翻译</div>
-                        <div class="option-pill" data-translator="assembly_ai">AssemblyAI转录</div>
-                        <div class="option-pill" data-translator="summary">总结</div>
-                        <div class="option-pill" data-translator="tts">中文TTS</div>
+                        <div class="segmented-control">
+                            <div class="option-pill" data-translator="google">Google翻译</div>
+                            <div class="option-pill" data-translator="silicon_cloud">SiliconCloud翻译</div>
+                            <div class="option-pill" data-translator="assembly_ai">AssemblyAI转录</div>
+                        </div>
+                        <div class="tool-buttons">
+                            <div class="option-pill tool-button" data-translator="summary">
+                                <svg width="16" height="16" viewBox="0 0 16 16">
+                                    <path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+                                </svg>
+                                <span>总结</span>
+                            </div>
+                            <div class="option-pill tool-button" data-translator="tts">
+                                <svg width="16" height="16" viewBox="0 0 16 16">
+                                    <path d="M3 6v4M6 4v8M9 2v12M12 6v4" stroke="currentColor" fill="none" stroke-width="1.2" stroke-linecap="round"/>
+                                </svg>
+                                <span>TTS</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="actions">
