@@ -843,27 +843,41 @@ function findSubtitleIndex(currentTime) {
     return -1;
 }
 
-function updateWordHighlight(currentTime) {
-    // 如果当前没有高亮的单词，或者当前高亮的单词已经不在时间范围内
-    if (currentWordIndex === -1 || 
-        !wordPositions[currentWordIndex] ||
-        currentTime < wordPositions[currentWordIndex].startTime ||
-        currentTime > wordPositions[currentWordIndex].endTime) {
+// 优化音频时间更新处理
+let lastUpdateTime = 0;
+const UPDATE_INTERVAL = 50; // 最小更新间隔（毫秒）
+let lastWordIndex = -1; // 新增：记录上一次高亮的单词索引
 
-        // 移除当前高亮
-        if (currentWordIndex !== -1 && wordPositions[currentWordIndex]) {
-            wordPositions[currentWordIndex].element.classList.remove('word-active');
+function onTimeUpdate() {
+    const now = Date.now();
+    if (now - lastUpdateTime < UPDATE_INTERVAL) {
+        return; // 如果距离上次更新时间太短，则跳过
+    }
+    
+    const currentTime = audioPlayer.currentTime * 1000;
+    updateSubtitleHighlight(currentTime);
+    updateWordHighlight(currentTime);
+    lastUpdateTime = now;
+}
+
+function updateWordHighlight(currentTime) {
+    // 使用二分查找找到新的单词索引
+    const newWordIndex = findWordIndex(currentTime);
+
+    // 只有当新的高亮索引与上一次不同，或者当前没有高亮时才更新
+    if (newWordIndex !== lastWordIndex) {
+        // 移除旧的高亮
+        if (lastWordIndex !== -1 && wordPositions[lastWordIndex]) {
+            wordPositions[lastWordIndex].element.classList.remove('word-active');
         }
 
-        // 使用二分查找找到新的单词索引
-        const newWordIndex = findWordIndex(currentTime);
-
+        // 添加新的高亮
         if (newWordIndex !== -1 && wordPositions[newWordIndex]) {
             wordPositions[newWordIndex].element.classList.add('word-active');
-            currentWordIndex = newWordIndex;
-        } else {
-            currentWordIndex = -1;
         }
+
+        // 更新上一次的高亮索引
+        lastWordIndex = newWordIndex;
     }
 }
 
@@ -888,22 +902,6 @@ function findWordIndex(currentTime) {
     }
 
     return -1;
-}
-
-// 优化音频时间更新处理
-let lastUpdateTime = 0;
-const UPDATE_INTERVAL = 50; // 最小更新间隔（毫秒）
-
-function onTimeUpdate() {
-    const now = Date.now();
-    if (now - lastUpdateTime < UPDATE_INTERVAL) {
-        return; // 如果距离上次更新时间太短，则跳过
-    }
-    
-    const currentTime = audioPlayer.currentTime * 1000;
-    updateSubtitleHighlight(currentTime);
-    updateWordHighlight(currentTime);
-    lastUpdateTime = now;
 }
 
 // 初始化拖放区域
