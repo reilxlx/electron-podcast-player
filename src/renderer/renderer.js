@@ -499,15 +499,19 @@ async function loadHistoryFile(hash, info) {
         console.log('[渲染进程] 设置音频源:', info.file_path);
         audioPlayer.src = info.file_path;
 
-        // 更新总结按钮状态
-        const summaryButton = document.querySelector('.option-pill[data-translator="summary"]');
-        if (summaryButton) {
-            summaryButton.classList.remove('disabled');
-        }
-
         console.log('[渲染进程] 加载缓存数据...');
         const cachedData = await window.electronAPI.loadCachedData(hash);
         console.log('[渲染进程] 缓存数据:', cachedData);
+        
+        // 更新总结按钮状态 - 只有在有缓存数据且有字幕数据时才启用
+        const summaryButton = document.querySelector('.option-pill[data-translator="summary"]');
+        if (summaryButton) {
+            if (cachedData && cachedData.subtitles && cachedData.subtitles.length > 0) {
+                summaryButton.classList.remove('disabled');
+            } else {
+                summaryButton.classList.add('disabled');
+            }
+        }
         
         if (cachedData) {
             console.log('[渲染进程] 解析缓存数据...');
