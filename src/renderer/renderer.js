@@ -559,7 +559,9 @@ async function loadHistoryFile(hash, info) {
             }
             
             if (hasTranslations) {
-                const firstTranslation = Object.values(translations)[0];
+                // 获取第一个翻译的translator信息
+                const firstTranslationKey = Object.keys(translations)[0];
+                const firstTranslation = translations[firstTranslationKey];
                 const translator = firstTranslation ? firstTranslation.translator : 'google';
                 console.log('[渲染进程] 设置翻译器:', translator);
                 await setTranslatorFromHistory(translator);
@@ -1084,9 +1086,18 @@ async function setTranslatorFromHistory(translator) {
     
     pills.forEach(pill => pill.classList.remove('active'));
     
-    const targetPill = document.querySelector(`[data-translator="${translator}"]`);
-    if (targetPill) {
-        targetPill.classList.add('active');
+    // 特殊处理 Ollama 翻译
+    if (translator && translator.startsWith('ollama')) {
+        const ollamaPill = document.querySelector('[data-translator="ollama"]');
+        if (ollamaPill) {
+            ollamaPill.classList.add('active');
+        }
+    } else {
+        // 其他翻译器的处理保持不变
+        const targetPill = document.querySelector(`[data-translator="${translator}"]`);
+        if (targetPill) {
+            targetPill.classList.add('active');
+        }
     }
 }
 
