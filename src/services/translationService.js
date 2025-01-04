@@ -1,5 +1,6 @@
 const fetch = require('node-fetch');
 const { loadConfig } = require('./fileService');
+const { ollamaTranslate } = require('./ollamaTranslationService');
 
 /**
  * Google 翻译实现
@@ -141,8 +142,8 @@ async function siliconCloudTranslate(text, api_key, base_url = 'https://api.sili
 /**
  * 批量翻译接口 (支持并发)
  * @param {Array<{index:number,text:string}>} texts 要翻译的文本数组
- * @param {string} translator 翻译器类型 'google' | 'silicon_cloud'
- * @param {string|null} apiKey API密钥（对Google翻译可选）
+ * @param {string} translator 翻译器类型 'google' | 'silicon_cloud' | 'ollama'
+ * @param {string|null} apiKey API密钥（对Google翻译和Ollama可选）
  * @param {Function} onProgress 进度回调函数，参数为(index, translatedText)
  * @param {number} concurrency 并发数
  */
@@ -163,6 +164,9 @@ async function translateTextBatch(texts, translator, apiKey, onProgress, concurr
         } else if (translator === 'silicon_cloud') {
           console.log('[翻译服务] 使用SiliconCloud翻译...');
           translation = await siliconCloudTranslate(item.text, apiKey);
+        } else if (translator === 'ollama') {
+          console.log('[翻译服务] 使用Ollama本地翻译...');
+          translation = await ollamaTranslate(item.text);
         } else {
           console.log('[翻译服务] 使用默认Google翻译...');
           translation = await googleTranslate(item.text) || "";
