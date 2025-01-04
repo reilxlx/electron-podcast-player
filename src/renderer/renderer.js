@@ -142,6 +142,14 @@ window.addEventListener('DOMContentLoaded', async () => {
         e.preventDefault();
         showModelContextMenu(e, 'silicon_cloud');
     });
+
+    // 添加右键菜单监听器到Ollama按钮
+    const ollamaPill = document.querySelector('.option-pill[data-translator="ollama"]');
+    
+    ollamaPill.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        showOllamaModelContextMenu(e);
+    });
 });
 
 // 优化文件列表更新
@@ -2146,4 +2154,147 @@ function highlightCurrentTTSSubtitle(index) {
         // 滚动到当前字幕
         currentSubtitle.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
+}
+
+// 显示Ollama设置模型的上下文菜单
+function showOllamaModelContextMenu(event) {
+    event.preventDefault();
+
+    // 移除已存在的上下文菜单
+    const existingMenu = document.querySelector('.context-menu');
+    if (existingMenu) {
+        existingMenu.remove();
+    }
+
+    const menu = document.createElement('div');
+    menu.className = 'context-menu';
+
+    // 添加"设置模型"选项
+    const setModelBtn = document.createElement('button');
+    setModelBtn.className = 'context-menu-item';
+    setModelBtn.innerHTML = `
+        <svg class="menu-icon" viewBox="0 0 16 16">
+            <path d="M13.5 8.5l-1.5 1.5-2-2L8.5 9.5l-2-2L5 9 3.5 7.5m7-3.5h3m-3 7h3m-12-7h3m-3 7h3m4-10v13" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-width="1.2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>设置翻译模型</span>
+    `;
+
+    setModelBtn.addEventListener('click', () => {
+        menu.remove();
+        openSetOllamaModelModal();
+    });
+
+    menu.appendChild(setModelBtn);
+    document.body.appendChild(menu);
+
+    // 设置菜单位置
+    const rect = event.target.getBoundingClientRect();
+    const x = event.clientX;
+    const y = event.clientY;
+
+    // 确保菜单不会超出窗口边界
+    const menuRect = menu.getBoundingClientRect();
+    const windowWidth = window.innerWidth;
+    const windowHeight = window.innerHeight;
+
+    let menuX = x;
+    let menuY = y;
+
+    if (x + menuRect.width > windowWidth) {
+        menuX = windowWidth - menuRect.width;
+    }
+
+    if (y + menuRect.height > windowHeight) {
+        menuY = windowHeight - menuRect.height;
+    }
+
+    menu.style.left = `${menuX}px`;
+    menu.style.top = `${menuY}px`;
+
+    // 点击其他区域关闭菜单
+    const closeMenu = (e) => {
+        if (!menu.contains(e.target)) {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        }
+    };
+
+    setTimeout(() => {
+        document.addEventListener('click', closeMenu);
+    }, 0);
+}
+
+// 打开设置Ollama模型的模态框
+function openSetOllamaModelModal() {
+    const modal = document.createElement('div');
+    modal.className = 'macos-alert';
+    modal.innerHTML = `
+        <div class="macos-alert-icon">
+            <img src="assets/ollama.png" width="24" height="24" alt="Ollama Logo">
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">设置Ollama翻译模型</p>
+            <input type="text" class="macos-alert-input" id="ollama-model-input" placeholder="输入模型名称，例如：qwen2.5:0.5b">
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" id="save-ollama-model">保存</button>
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 获取当前配置
+    window.electronAPI.getConfig().then(config => {
+        const modelInput = document.getElementById('ollama-model-input');
+        modelInput.value = config.ollama_model || 'qwen2.5:0.5b';
+    });
+
+    // 保存按钮点击事件
+    const saveButton = document.getElementById('save-ollama-model');
+    saveButton.addEventListener('click', async () => {
+        const modelInput = document.getElementById('ollama-model-input');
+        const modelName = modelInput.value.trim();
+
+        if (modelName) {
+            try {
+                // 先获取当前配置
+                const currentConfig = await window.electronAPI.getConfig();
+                // 更新配置
+                const newConfig = {
+                    ...currentConfig,
+                    ollama_model: modelName
+                };
+                // 保存更新后的配置
+                await window.electronAPI.saveConfig(newConfig);
+                modal.remove();
+
+                // 显示成功提示
+                const alertBox = document.createElement('div');
+                alertBox.className = 'macos-alert';
+                alertBox.innerHTML = `
+                    <div class="macos-alert-icon">
+                        <img src="assets/ollama.png" width="24" height="24" alt="Ollama Logo">
+                    </div>
+                    <div class="macos-alert-message">
+                        <p class="macos-alert-title">设置成功</p>
+                        <p class="macos-alert-text">翻译模型已更新为：${modelName}</p>
+                    </div>
+                    <div class="macos-alert-buttons">
+                        <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">确定</button>
+                    </div>
+                `;
+                document.body.appendChild(alertBox);
+            } catch (error) {
+                console.error('保存Ollama模型失败:', error);
+                alert('保存Ollama模型失败，请重试');
+            }
+        } else {
+            alert('模型名称不能为空');
+        }
+    });
 }

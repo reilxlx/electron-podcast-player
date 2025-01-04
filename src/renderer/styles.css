@@ -1224,3 +1224,19 @@ audio {
     background-color: var(--primary-color);
     color: white;
 }
+
+/* 添加Ollama翻译按钮特定样式 */
+.option-pill[data-translator="ollama"] {
+    background-color: var(--hover-color);
+    color: var(--text-primary);
+}
+
+.option-pill[data-translator="ollama"]:hover {
+    background-color: var(--active-color);
+}
+
+/* 移除Ollama翻译按钮的激活状态样式 */
+.option-pill[data-translator="ollama"].active {
+    background-color: var(--hover-color);
+    color: var(--text-primary);
+}
