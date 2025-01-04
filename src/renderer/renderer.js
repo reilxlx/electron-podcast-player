@@ -220,6 +220,9 @@ const searchFiles = debounce((searchTerm) => {
 }, 150); // 150ms 的防抖延迟
 
 async function showContextMenu(event, hash) {
+    event.preventDefault();
+    event.stopPropagation(); // 阻止事件冒泡
+
     // 移除已存在的上下文菜单
     const existingMenu = document.querySelector('.context-menu');
     if (existingMenu) {
@@ -1189,6 +1192,7 @@ window.electronAPI.onTranslationProgress((data) => {
 // 显示设置模型的上下文菜单
 function showModelContextMenu(event, translator) {
     event.preventDefault();
+    event.stopPropagation(); // 阻止事件冒泡
 
     // 移除已存在的上下文菜单
     const existingMenu = document.querySelector('.context-menu');
@@ -1494,6 +1498,9 @@ function openSetAssemblyAIKeyModal() {
 
 // 显示单词翻译右键菜单
 async function showWordTranslationMenu(event, word) {
+    event.preventDefault();
+    event.stopPropagation(); // 阻止事件冒泡
+
     const existingMenu = document.querySelector('.context-menu');
     if (existingMenu) {
         existingMenu.remove();
@@ -1641,6 +1648,7 @@ function showTranslationResult(word, translation) {
 // 添加总结按钮的右键菜单函数
 function showSummaryContextMenu(event) {
     event.preventDefault();
+    event.stopPropagation(); // 阻止事件冒泡
 
     // 移除已存在的上下文菜单
     const existingMenu = document.querySelector('.context-menu');
@@ -1862,6 +1870,7 @@ function openSetSummaryModelModal() {
 // 添加TTS右键菜单函数
 function showTTSContextMenu(event) {
     event.preventDefault();
+    event.stopPropagation(); // 阻止事件冒泡
 
     // 检查按钮是否被禁用
     const ttsButton = document.querySelector('.option-pill[data-translator="tts"]');
@@ -2178,6 +2187,7 @@ function highlightCurrentTTSSubtitle(index) {
 // 显示Ollama设置模型的上下文菜单
 function showOllamaModelContextMenu(event) {
     event.preventDefault();
+    event.stopPropagation(); // 阻止事件冒泡
 
     // 移除已存在的上下文菜单
     const existingMenu = document.querySelector('.context-menu');
@@ -2317,3 +2327,16 @@ function openSetOllamaModelModal() {
         }
     });
 }
+
+// 添加全局点击事件监听器，用于关闭所有弹出菜单
+document.addEventListener('click', (e) => {
+    // 检查是否点击了菜单或菜单触发器本身
+    const isClickingMenu = e.target.closest('.context-menu');
+    const isClickingMenuTrigger = e.target.closest('.option-pill');
+    
+    // 如果点击的既不是菜单也不是触发器，则关闭所有菜单
+    if (!isClickingMenu && !isClickingMenuTrigger) {
+        const menus = document.querySelectorAll('.context-menu');
+        menus.forEach(menu => menu.remove());
+    }
+});
