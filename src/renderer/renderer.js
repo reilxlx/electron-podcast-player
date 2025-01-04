@@ -305,6 +305,7 @@ async function showContextMenu(event, hash) {
                     const activePill = document.querySelector('.option-pill.active');
                     const selectedTranslator = activePill ? activePill.getAttribute('data-translator') : 'google';
                     let apiKey = null;
+                    let model = null;
                     
                     if (selectedTranslator === 'silicon_cloud') {
                         const config = await window.electronAPI.getConfig();
@@ -312,6 +313,12 @@ async function showContextMenu(event, hash) {
                             throw new Error('未配置SiliconCloud API密钥');
                         }
                         apiKey = config.silicon_cloud_api_key;
+                    } else if (selectedTranslator === 'ollama') {
+                        const config = await window.electronAPI.getConfig();
+                        if (!config || !config.ollama_model) {
+                            throw new Error('未配置Ollama模型');
+                        }
+                        model = config.ollama_model;
                     }
                     
                     // 调用翻译API
@@ -319,7 +326,8 @@ async function showContextMenu(event, hash) {
                         fileHash: hash,
                         subtitles: textsToTranslate,
                         translator: selectedTranslator,
-                        apiKey: apiKey
+                        apiKey: apiKey,
+                        model: model
                     });
                     
                     console.log('[渲染进程] 翻译完成');

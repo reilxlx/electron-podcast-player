@@ -144,62 +144,27 @@ const saveSubtitleCache = (fileHash, data) => {
     }
 };
 
-const loadSubtitleCache = (fileHash) => {
-    console.log(`[文件服务] 尝试加载字幕缓存，文件哈希: ${fileHash}`);
+function loadSubtitleCache(fileHash) {
+    const filePath = path.join(getPodcastDataPath(), 'subtitles', `${fileHash}.json`);
     try {
-        const subtitlePath = path.join(subtitleCacheDir, `${fileHash}.json`);
-        console.log(`[文件服务] 字幕文件路径: ${subtitlePath}`);
-        
-        if (!fs.existsSync(subtitlePath)) {
-            console.log('[文件服务] 未找到字幕缓存文件');
-            return null;
-        }
-        
-        const fileContent = fs.readFileSync(subtitlePath, 'utf8');
-        console.log('[文件服务] 成功读取字幕文件');
-        
-        try {
-            const data = JSON.parse(fileContent);
-            console.log('[文件服务] 成功解析JSON数据');
-            
-            // 验证数据格式
-            if (!data.subtitles || !Array.isArray(data.subtitles)) {
-                console.error('[文件服务] 缓存文件格式无效: subtitles不是数组');
-                return null;
+        if (fs.existsSync(filePath)) {
+            const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+            // 确保 translations 属性存在
+            if (!data.translations) {
+                data.translations = {};
             }
-            
-            // 验证每个字幕对象
-            const isValid = data.subtitles.every((subtitle, index) => {
-                if (!subtitle || typeof subtitle !== 'object') {
-                    console.error(`[文件服务] 字幕对象 ${index} 无效`);
-                    return false;
-                }
-                
-                if (!subtitle.words || !Array.isArray(subtitle.words)) {
-                    console.error(`[文件服务] 字幕对象 ${index} 的words不是数组`);
-                    return false;
-                }
-                
-                return true;
-            });
-            
-            if (!isValid) {
-                console.error('[文件服务] 字幕数据验证失败');
-                return null;
-            }
-            
-            console.log('[文件服务] 成功加载字幕缓存');
             return data;
-            
-        } catch (parseError) {
-            console.error('[文件服务] JSON解析失败:', parseError);
-            return null;
+        } else {
+            console.warn(`未找到字幕缓存文件: ${filePath}`);
+            // 如果文件不存在，返回一个包含空 translations 对象的结构
+            return { subtitles: [], file_path: '', translations: {} };
         }
     } catch (error) {
-        console.error('[文件服务] 加载字幕缓存失败:', error);
-        return null;
+        console.error(`加载字幕缓存失败: ${error}`);
+        // 发生错误时也返回一个包含空 translations 对象的结构
+        return { subtitles: [], file_path: '', translations: {} };
     }
-};
+}
 
 // 修改 setSiliconCloudModel 函数，只更新模型字段
 function setSiliconCloudModel(newModel) {

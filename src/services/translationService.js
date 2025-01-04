@@ -146,8 +146,9 @@ async function siliconCloudTranslate(text, api_key, base_url = 'https://api.sili
  * @param {string|null} apiKey API密钥（对Google翻译和Ollama可选）
  * @param {Function} onProgress 进度回调函数，参数为(index, translatedText)
  * @param {number} concurrency 并发数
+ * @param {string|null} model 模型名称（对Ollama可选）
  */
-async function translateTextBatch(texts, translator, apiKey, onProgress, concurrency = 2) {
+async function translateTextBatch(texts, translator, apiKey, onProgress, concurrency = 2, model = null) {
   console.log(`[翻译服务] 开始批量翻译 ${texts.length} 条文本，使用翻译器: ${translator}，并发数: ${concurrency}`);
   const results = {};
   const tasks = [];
@@ -166,14 +167,17 @@ async function translateTextBatch(texts, translator, apiKey, onProgress, concurr
           translation = await siliconCloudTranslate(item.text, apiKey);
         } else if (translator === 'ollama') {
           console.log('[翻译服务] 使用Ollama本地翻译...');
-          translation = await ollamaTranslate(item.text);
+          // 使用传入的模型名称，如果没有则使用默认模型
+          translation = await ollamaTranslate(item.text, model || 'qwen2.5:0.5b');
         } else {
           console.log('[翻译服务] 使用默认Google翻译...');
           translation = await googleTranslate(item.text) || "";
         }
+        // 确保 results[item.index] 被正确设置
         results[item.index] = { text: translation, translator };
       } catch (err) {
         console.error(`[翻译服务] 翻译失败:`, err);
+        // 即使翻译失败，也设置一个默认值
         results[item.index] = { text: "", translator };
       } finally {
         completedCount++;

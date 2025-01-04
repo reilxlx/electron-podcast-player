@@ -131,7 +131,7 @@ async function createWindow() {
     }
   });
 
-  ipcMain.handle('translate-subtitles', async (event, { fileHash, subtitles, translator, apiKey }) => {
+  ipcMain.handle('translate-subtitles', async (event, { fileHash, subtitles, translator, apiKey, model }) => {
     console.log('[主进程] 收到翻译请求，使用的翻译器:', translator);
     try {
       const translatedSubtitles = await translateTextBatch(
@@ -139,16 +139,37 @@ async function createWindow() {
         translator,
         apiKey,
         (current, text) => {
-          // 向渲染进程发送进度更新
           mainWindow.webContents.send('translation-progress', { current, total: subtitles.length, text });
         },
-        2 // 并发数
+        2,
+        model
       );
 
       // 更新缓存数据
       const cachedData = loadSubtitleCache(fileHash);
+
+      // 确保 cachedData.translations 存在
+      if (!cachedData.translations) {
+        cachedData.translations = {};
+      }
+
       if (cachedData) {
-        cachedData.translations = translatedSubtitles;
+        // 根据翻译器类型更新 translations 对象
+        if (translator === 'ollama') {
+          Object.keys(translatedSubtitles).forEach(index => {
+            // 确保 translatedSubtitles[index] 存在
+            if (translatedSubtitles[index]) {
+              cachedData.translations[index] = {
+                ...translatedSubtitles[index],
+                translator: `ollama:${model}`
+              };
+            } else {
+              console.warn(`[主进程] 翻译结果中缺少索引 ${index} 的数据`);
+            }
+          });
+        } else {
+          cachedData.translations = translatedSubtitles;
+        }
         // 保存更新后的缓存
         saveSubtitleCache(fileHash, cachedData);
         console.log('[主进程] 翻译结果已保存到缓存');
@@ -157,7 +178,7 @@ async function createWindow() {
       return translatedSubtitles;
     } catch (error) {
       console.error('[主进程] 翻译失败:', error);
-      throw error; // 错误抛出，以便在渲染进程中处理
+      throw error;
     }
   });
 
