@@ -19,6 +19,7 @@
 - 支持多种翻译引擎：
   - Google 翻译：适用于通用场景
   - SiliconCloud 大模型翻译：提供更准确的专业领域翻译
+  - Ollama 本地模型翻译：支持离线翻译，无需联网
 - 实时翻译功能，支持逐句翻译
 - 单词级别翻译（双击单词获取释义）
 - 智能缓存翻译结果，提高响应速度
@@ -60,14 +61,50 @@ git clone https://github.com/reilxlx/electron-podcast-player.git
 cd electron-podcast-player
 ```
 
-2. 创建必要的目录结构
+2. 安装并配置 Ollama（macOS）
+```bash
+# 使用 Homebrew 安装 Ollama
+brew install ollama
+# 或者在 https://github.com/ollama/ollama 下载macos版本的ollama安装包
+
+# 启动 Ollama 服务
+ollama serve
+ollama pull qwen2.5:0.5b    # 通义千问2.5模型，支持中英翻译，可选用其他模型
+```
+
+可使用postman测试是否大模型部署成功，请求地址：http://localhost:11434/api/chat
+```json
+{
+    "model": "qwen2.5:0.5b",
+    "temperature": 0.7,
+    "top_p": 0.9,
+    "frequency_penalty": 0.2,
+    "presence_penalty": 0.1,
+    "max_tokens": 2048,
+    "messages": [
+        {
+            "role": "system",
+            "content": "你是一个专业的翻译助手。请将以下文本准确流畅地翻译成中文，保持原文的语气和风格。只返回翻译结果，不要有任何解释或额外的内容。"
+        },
+        {
+            "role": "user",
+            "content": "Imagine fine tuning an LLM to be more creative by amplifying certain super activations or making it more analytical by suppressing others. It's like having a set of tuning knobs for different aspects of intelligence."
+        }
+    ],
+    "stream": false
+}
+```
+若输出正常返回信息，则表明ollama模型部署成功。
+
+
+3. 创建必要的目录结构
 ```bash
 mkdir -p podcast_data/{audio,subtitles}
 touch podcast_data/audio_index.json
 touch podcast_data/config.json
 ```
 
-3. 配置 API Keys
+4. 配置 API Keys
 在 `podcast_data/config.json` 中配置必要的 API 密钥：
 ```json
 {
@@ -75,7 +112,8 @@ touch podcast_data/config.json
   "silicon_cloud_api_key": "your_silicon_cloud_api_key_here",
   "silicon_cloud_model": "Qwen/Qwen2.5-7B-Instruct",
   "silicon_cloud_summary_model": "THUDM/glm-4-9b-chat",
-  "silicon_cloud_TTS_name": "RVC-Boss/GPT-SoVITS"
+  "silicon_cloud_TTS_name": "RVC-Boss/GPT-SoVITS",
+  "ollama_model": "qwen2.5:0.5b"
 }
 ```
 
@@ -83,13 +121,13 @@ API 获取方式：
 - AssemblyAI API Key: [https://www.assemblyai.com/](https://www.assemblyai.com/)
 - SiliconCloud API Key: [https://cloud.siliconflow.cn/](https://cloud.siliconflow.cn/)
 
-4. 安装依赖
+5. 安装依赖
 ```bash
 npm install --save-dev electron electron-builder
 npm install assemblyai node-fetch@2
 ```
 
-5. 运行应用
+6. 运行应用
 ```bash
 # 开发环境
 npm start
@@ -113,7 +151,9 @@ npm run build:mac
 
 3. **翻译设置**
    - 界面顶部选择翻译引擎
-   - 右键点击 SiliconCloud 按钮配置 API Key
+   - 可选择 Google 翻译、SiliconCloud 或 Ollama 本地翻译
+   - 使用 Ollama 翻译时确保本地服务已启动
+   - 右键点击翻译按钮可配置相应服务
    - 支持实时切换翻译服务
 
 4. **字幕互动**
@@ -144,7 +184,8 @@ src/
     ├── subtitleParser.js    # 字幕解析
     ├── transcriptionService.js  # 语音转写
     ├── translationService.js   # 翻译服务
-    └── summaryService.js      # 内容总结
+    ├── ollamaTranslationService.js  # Ollama本地翻译服务
+    ├── summaryService.js      # 内容总结
     └── ttsService.js         # TTS语音合成
 ```
 
@@ -154,12 +195,21 @@ src/
    - 注意 API 调用频率限制
    - 建议合理使用翻译缓存
    - 大文件转写可能需要较长时间
+   - Ollama 本地翻译无调用限制，但首次加载模型需要一定时间
 
-2. **兼容性说明**
+2. **Ollama 使用说明**
+   - 确保系统内存充足（建议 16GB 以上）
+   - 首次使用时需要下载模型，大小约 4-8GB
+   - 模型下载完成后支持离线使用
+   - 如遇到翻译质量问题，可尝试切换不同模型
+   - Ollama 服务默认端口为 11434，确保未被占用
+
+3. **兼容性说明**
    - 目前主要支持 macOS 平台
+   - Ollama 要求 macOS 12.0 或更高版本
    - 音频格式建议使用 MP3 或 WAV
 
-3. **最佳实践**
+4. **最佳实践**
    - 定期备份重要的翻译和字幕数据
    - 使用高质量音频源以获得更好的转写效果
    - 优先使用 Google NotebookLM 生成的音频以获得最佳体验
