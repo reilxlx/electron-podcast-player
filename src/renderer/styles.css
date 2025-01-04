@@ -1240,3 +1240,10 @@ audio {
     background-color: var(--hover-color);
     color: var(--text-primary);
 }
+
+/* 添加以下样式，使Ollama按钮激活时与SiliconCloud按钮样式一致 */
+.option-pill[data-translator="ollama"].active {
+    background-color: var(--background-color);
+    color: var(--text-primary);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
