@@ -96,15 +96,34 @@ ollama pull qwen2.5:0.5b    # 通义千问2.5模型，支持中英翻译，可�
 ```
 若输出正常返回信息，则表明ollama模型部署成功。
 
+3. 安装并配置whisper.cpp
+```bash
+# 下载whisper.cpp
+git clone https://github.com/ggerganov/whisper.cpp.git
+cd whisper.cpp
+sh ./models/download-ggml-model.sh base.en
+# build the project
+cmake -B build
+cmake --build build --config Release
+# transcribe an audio file
+./build/bin/whisper-cli -m models/ggml-base.en.bin -f audio/test.mp3
 
-3. 创建必要的目录结构
+# 以server方式启动whisper.cpp服务
+./build/bin/whisper-server -m ./models/ggml-base.en.bin --port 1123
+```
+
+使用postman测试是否whisper.cpp服务部署成功，请求地址：http://localhost:1123/inference
+![whisper.cpp测试](./data/whisper-test.png)
+
+
+4. 创建必要的目录结构
 ```bash
 mkdir -p podcast_data/{audio,subtitles}
 touch podcast_data/audio_index.json
 touch podcast_data/config.json
 ```
 
-4. 配置 API Keys
+5. 配置 API Keys
 在 `podcast_data/config.json` 中配置必要的 API 密钥：
 ```json
 {
@@ -121,13 +140,13 @@ API 获取方式：
 - AssemblyAI API Key: [https://www.assemblyai.com/](https://www.assemblyai.com/)
 - SiliconCloud API Key: [https://cloud.siliconflow.cn/](https://cloud.siliconflow.cn/)
 
-5. 安装依赖
+6. 安装依赖
 ```bash
 npm install --save-dev electron electron-builder
 npm install assemblyai node-fetch@2
 ```
 
-6. 运行应用
+7. 运行应用
 ```bash
 # 开发环境
 npm start
