@@ -1061,12 +1061,15 @@ async function initTranslatorSelection() {
         // 右键菜单处理
         if (translator === 'silicon_cloud' || 
             translator === 'assembly_ai' ||
+            translator === 'whisper' ||
             translator === 'summary' ||
             translator === 'tts') {
             pill.addEventListener('contextmenu', (e) => {
                 e.preventDefault();
                 if (translator === 'assembly_ai') {
                     openSetAssemblyAIKeyModal();
+                } else if (translator === 'whisper') {
+                    openSetWhisperServerModal();
                 } else if (translator === 'summary') {
                     showSummaryContextMenu(e);
                 } else if (translator === 'tts') {
@@ -2340,3 +2343,80 @@ document.addEventListener('click', (e) => {
         menus.forEach(menu => menu.remove());
     }
 });
+
+// 添加设置Whisper服务器URL的模态窗口函数
+function openSetWhisperServerModal() {
+    const existingModal = document.querySelector('.macos-alert');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'macos-alert';
+    modal.innerHTML = `
+        <div class="macos-alert-icon">
+            <img src="assets/openai.png" width="24" height="24" alt="OpenAI Logo">
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">设置Whisper服务器URL</p>
+            <input type="text" id="whisper-server-input" class="macos-alert-input" placeholder="输入服务器URL">
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" id="save-whisper-server-button">保存</button>
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // 获取当前Whisper服务器URL并填充到输入框中
+    window.electronAPI.getConfig().then(config => {
+        const serverInput = document.getElementById('whisper-server-input');
+        if (config && config.whisper_server_url) {
+            serverInput.value = config.whisper_server_url;
+        }
+    }).catch(error => {
+        console.error('获取当前Whisper服务器URL失败:', error);
+    });
+
+    // 处理保存按钮点击
+    const saveButton = document.getElementById('save-whisper-server-button');
+    saveButton.addEventListener('click', async () => {
+        const serverInput = document.getElementById('whisper-server-input').value.trim();
+        if (serverInput) {
+            try {
+                // 先获取当前配置
+                const currentConfig = await window.electronAPI.getConfig();
+                // 更新配置
+                const newConfig = {
+                    ...currentConfig,
+                    whisper_server_url: serverInput
+                };
+                // 保存更新后的配置
+                await window.electronAPI.saveConfig(newConfig);
+                modal.remove();
+                
+                // 显示成功提示
+                const alertBox = document.createElement('div');
+                alertBox.className = 'macos-alert';
+                alertBox.innerHTML = `
+                    <div class="macos-alert-icon">
+                        <img src="assets/openai.png" width="24" height="24" alt="OpenAI Logo">
+                    </div>
+                    <div class="macos-alert-message">
+                        <p class="macos-alert-title">设置成功</p>
+                        <p class="macos-alert-text">Whisper服务器URL已更新</p>
+                    </div>
+                    <div class="macos-alert-buttons">
+                        <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">确定</button>
+                    </div>
+                `;
+                document.body.appendChild(alertBox);
+            } catch (error) {
+                console.error('保存Whisper服务器URL失败:', error);
+                alert('保存Whisper服务器URL失败，请重试');
+            }
+        } else {
+            alert('服务器URL不能为空');
+        }
+    });
+}
