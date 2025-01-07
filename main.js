@@ -11,6 +11,7 @@ const { parseTranscript, generateSubtitleTimes } = require('./src/services/subti
 const { AssemblyAI } = require('assemblyai');
 const fs = require('fs');
 const { textToSpeech } = require('./src/services/ttsService');
+const { transcribeAudio: whisperTranscribe, saveTranscriptionResult } = require('./src/services/whisperTranscriptionService');
 
 let mainWindow = null;
 let audioIndex = {};
@@ -56,78 +57,149 @@ async function createWindow() {
   ipcMain.handle('get-config', () => config);
 
   ipcMain.handle('select-audio', async (event, filePath) => {
-    // 计算hash，用于检查缓存
-    let fileHash = await getFileHash(filePath);
-    if (audioIndex[fileHash]) {
-      // 缓存存在
-      let cachedData = loadSubtitleCache(fileHash);
-      return { fileHash, cachedData };
-    } else {
-      // 无缓存，需要转录
-      return { fileHash, cachedData: null };
+    try {
+        console.log('[主进程] 选择音频文件:', filePath);
+        
+        // 检查文件是否存在
+        if (!fs.existsSync(filePath)) {
+            throw new Error('音频文件不存在');
+        }
+
+        // 计算hash，用于检查缓存
+        console.log('[主进程] 计算文件hash...');
+        let fileHash = await getFileHash(filePath);
+        console.log('[主进程] 文件hash:', fileHash);
+
+        // 检查音频索引
+        if (audioIndex[fileHash]) {
+            console.log('[主进程] 在索引中找到文件记录');
+            // 检查文件路径是否变更
+            if (audioIndex[fileHash].file_path !== filePath) {
+                console.log('[主进程] 文件路径已变更，更新索引');
+                audioIndex[fileHash].file_path = filePath;
+                saveAudioIndex(audioIndex);
+            }
+
+            // 加载缓存
+            let cachedData = loadSubtitleCache(fileHash);
+            if (cachedData === null) {
+                console.log('[主进程] 缓存无效或已损坏，需要重新转录');
+                // 从索引中删除无效记录
+                delete audioIndex[fileHash];
+                saveAudioIndex(audioIndex);
+                return { fileHash, cachedData: null };
+            }
+            return { fileHash, cachedData };
+        } else {
+            console.log('[主进程] 文件未在索引中找到，需要转录');
+            return { fileHash, cachedData: null };
+        }
+    } catch (error) {
+        console.error('[主进程] 选择音频文件失败:', error);
+        throw error;
     }
   });
 
   ipcMain.handle('transcribe-audio', async (event, fileInfo) => {
     try {
-      console.log('[主进程] 开始处理音频转录请求');
+        console.log('[主进程] 开始处理音频转录请求');
+        console.log('[主进程] 使用的转录服务:', fileInfo.transcriptionService);
 
-      // 从配置文件中读取ASR API Key
-      console.log('[主进程] 加载配置文件...');
-      const config = loadConfig();
-      if (!config.asr_api_key) {
-        console.error('[主进程] 未找到ASR API Key');
-        throw new Error('未找到ASR API Key，请在配置文件中设置asr_api_key');
-      }
+        // 从配置文件中读取配置
+        console.log('[主进程] 加载配置文件...');
+        const config = loadConfig();
 
-      // 调用转录服务
-      console.log('[主进程] 调用转录服务...');
-      const transcript = await transcribeAudio(fileInfo.filePath, config.asr_api_key);
+        let subtitleData;
+        
+        // 根据传入的转录服务类型选择转录引擎
+        if (fileInfo.transcriptionService === 'whisper') {
+            // 检查Whisper服务器URL配置
+            if (!config.whisper_server_url) {
+                throw new Error('未配置Whisper服务器URL，请在设置中配置');
+            }
+            
+            // 使用Whisper服务
+            console.log('[主进程] 使用Whisper服务进行转录...');
+            const subtitles = await whisperTranscribe(fileInfo.filePath, config.whisper_server_url);
+            console.log('[主进程] Whisper转录结果:', subtitles);
+            
+            if (!subtitles || !Array.isArray(subtitles) || subtitles.length === 0) {
+                throw new Error('Whisper转录失败：未获取到有效的转录结果');
+            }
 
-      // 解析转录结果
-      console.log('[主进程] 解析转录结果...');
-      const subtitles = [];
-      if (transcript.utterances) {
-        transcript.utterances.forEach((utterance, index) => {
-          subtitles.push({
-            index: index,
-            speaker: utterance.speaker,
-            text: utterance.text,
-            start_time: utterance.start,
-            end_time: utterance.end,
-            words: utterance.words || []
-          });
-        });
-      }
+            // 保存转录结果
+            const subtitlePath = await saveTranscriptionResult(fileInfo.filePath, subtitles);
+            console.log('[主进程] 转录结果已保存到:', subtitlePath);
+            
+            subtitleData = {
+                subtitles: subtitles,
+                file_path: fileInfo.filePath,
+                translations: {}
+            };
 
-      // 构建完整的字幕数据对象
-      const subtitleData = {
-        subtitles: transcript.subtitles, // 使用转录服务返回的格式化字幕
-        file_path: fileInfo.filePath,     // 添加文件路径
-        translations: {}                  // 添加一个空的 translations 对象
-      };
+            // 保存字幕缓存
+            console.log('[主进程] 保存字幕缓存...');
+            await saveSubtitleCache(fileInfo.hash, subtitleData);
 
-      // 保存字幕缓存
-      console.log('[主进程] 保存字幕缓存...');
-      await saveSubtitleCache(fileInfo.hash, subtitleData);
+        } else if (fileInfo.transcriptionService === 'assemblyai') {
+            // 检查AssemblyAI API Key配置
+            if (!config.asr_api_key) {
+                throw new Error('未配置AssemblyAI API Key，请在设置中配置');
+            }
+            
+            // 使用AssemblyAI服务
+            console.log('[主进程] 使用AssemblyAI服务进行转录...');
+            const transcript = await transcribeAudio(fileInfo.filePath, config.asr_api_key);
+            console.log('[主进程] AssemblyAI转录完成，处理转录结果...');
 
-      // 更新音频索引
-      console.log('[主进程] 更新音频索引...');
-      audioIndex[fileInfo.hash] = {
-        file_path: fileInfo.filePath,
-        subtitle_file: `podcast_data/subtitles/${fileInfo.hash}.json`
-      };
-      saveAudioIndex(audioIndex);
+            // 处理转录结果
+            const subtitles = [];
+            if (transcript.utterances) {
+                transcript.utterances.forEach((utterance, index) => {
+                    subtitles.push({
+                        index: index,
+                        speaker: utterance.speaker,
+                        text: utterance.text,
+                        start_time: utterance.start,
+                        end_time: utterance.end,
+                        words: utterance.words || []
+                    });
+                });
+            }
 
-      // 通知渲染进程重新加载音频索引并更新列表
-      console.log('[主进程] 通知渲染进程重新加载音频索引');
-      mainWindow.webContents.send('audio-index-updated');
+            // 构建字幕数据
+            subtitleData = {
+                subtitles: subtitles,  // 使用处理后的字幕数组
+                file_path: fileInfo.filePath,
+                translations: {}
+            };
 
-      console.log('[主进程] 音频转录完成');
-      return subtitleData;
+            // 保存字幕缓存
+            console.log('[主进程] 保存AssemblyAI转录结果到缓存...');
+            await saveSubtitleCache(fileInfo.hash, subtitleData);
+            console.log('[主进程] AssemblyAI转录结果保存成功');
+
+        } else {
+            throw new Error('未选择转录服务或不支持的转录服务类型');
+        }
+
+        // 更新音频索引
+        console.log('[主进程] 更新音频索引...');
+        audioIndex[fileInfo.hash] = {
+            file_path: fileInfo.filePath,
+            subtitle_file: `podcast_data/subtitles/${fileInfo.hash}.json`
+        };
+        saveAudioIndex(audioIndex);
+
+        // 通知渲染进程重新加载音频索引并更新列表
+        console.log('[主进程] 通知渲染进程重新加载音频索引');
+        mainWindow.webContents.send('audio-index-updated');
+
+        console.log('[主进程] 音频转录完成');
+        return subtitleData;
     } catch (error) {
-      console.error('[主进程] 音频转录失败:', error);
-      throw error;
+        console.error('[主进程] 音频转录失败:', error);
+        throw error;
     }
   });
 
@@ -234,19 +306,36 @@ async function createWindow() {
 
   ipcMain.handle('delete-history-file', async (event, hash) => {
     try {
+        console.log('[主进程] 开始删除历史文件:', hash);
+        
         // 删除字幕文件
         const subtitlePath = path.join(getPodcastDataPath(), 'subtitles', `${hash}.json`);
         if (fs.existsSync(subtitlePath)) {
+            console.log('[主进程] 删除字幕文件:', subtitlePath);
             fs.unlinkSync(subtitlePath);
+        } else {
+            console.log('[主进程] 字幕文件不存在:', subtitlePath);
         }
         
         // 从索引中删除记录
-        delete audioIndex[hash];
-        saveAudioIndex(audioIndex);
+        if (audioIndex[hash]) {
+            console.log('[主进程] 从索引中删除记录');
+            delete audioIndex[hash];
+            saveAudioIndex(audioIndex);
+        }
         
+        // 清理其他可能的相关文件（如果有的话）
+        const cacheDir = path.join(getPodcastDataPath(), 'cache');
+        const cacheFile = path.join(cacheDir, `${hash}.cache`);
+        if (fs.existsSync(cacheFile)) {
+            console.log('[主进程] 删除缓存文件:', cacheFile);
+            fs.unlinkSync(cacheFile);
+        }
+        
+        console.log('[主进程] 文件删除完成');
         return true;
     } catch (error) {
-        console.error('删除历史文件失败:', error);
+        console.error('[主进程] 删除历史文件失败:', error);
         throw error;
     }
   });

@@ -43,10 +43,11 @@ async function transcribeAudio(filePath, apiKey) {
 
                 // 构建字幕对象
                 subtitles.push({
+                    index: index,
                     speaker: utterance.speaker,
+                    text: utterance.text,
                     start_time: Math.round(utterance.start),
                     end_time: Math.round(utterance.end),
-                    content: utterance.text,
                     words: words
                 });
             });
@@ -55,10 +56,10 @@ async function transcribeAudio(filePath, apiKey) {
         // 构建完整的返回对象
         const result = {
             subtitles: subtitles,
-            file_path: filePath
+            utterances: transcript.utterances
         };
 
-        console.log('[ASR] 转录完成');
+        console.log('[ASR] 转录完成，字幕数量:', subtitles.length);
         return result;
 
     } catch (error) {

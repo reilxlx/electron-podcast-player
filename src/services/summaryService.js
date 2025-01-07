@@ -10,9 +10,19 @@ function extractSubtitleContent(subtitles) {
         throw new Error("[总结] 错误: 无效的字幕数据");
     }
 
-    // 提取所有字幕的content内容并合并
+    // 提取所有字幕的内容并合并
     const textContent = subtitles
-        .map(subtitle => subtitle.content || '') // 直接使用content字段
+        .map(subtitle => {
+            if (!subtitle || typeof subtitle !== 'object') return '';
+            
+            // 尝试不同的字段获取文本内容
+            if (subtitle.content) return subtitle.content;
+            if (subtitle.text) return subtitle.text;
+            if (Array.isArray(subtitle.words)) {
+                return subtitle.words.map(word => word.text || '').join(' ');
+            }
+            return '';
+        })
         .filter(text => text.trim() !== '') // 过滤空字幕
         .join(' '); // 用空格连接所有文本
 

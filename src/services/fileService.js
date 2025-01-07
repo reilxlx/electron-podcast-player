@@ -107,7 +107,7 @@ const saveSubtitleCache = (fileHash, data) => {
     try {
         const subtitlePath = path.join(subtitleCacheDir, `${fileHash}.json`);
         
-        // 验证数据格式
+        // 验证基本数据格式
         if (!data.subtitles || !Array.isArray(data.subtitles)) {
             throw new Error('无效的字幕数据格式: subtitles必须是数组');
         }
@@ -116,25 +116,28 @@ const saveSubtitleCache = (fileHash, data) => {
             throw new Error('无效的字幕数据格式: 缺少file_path');
         }
 
-        // 验证每个字幕对象的格式
+        // 验证每个字幕对象的基本格式
         data.subtitles.forEach((subtitle, index) => {
-            if (!subtitle.speaker || 
-                typeof subtitle.start_time !== 'number' ||
+            if (typeof subtitle.start_time !== 'number' ||
                 typeof subtitle.end_time !== 'number' ||
-                !subtitle.content ||
-                !Array.isArray(subtitle.words)) {
-                throw new Error(`字幕对象 ${index} 格式无效`);
+                !subtitle.text) {
+                throw new Error(`字幕对象 ${index} 格式无效: 缺少必要字段`);
             }
 
-            // 验证words数组格式
-            subtitle.words.forEach((word, wordIndex) => {
-                if (!word.text || 
-                    typeof word.start !== 'number' ||
-                    typeof word.end !== 'number') {
-                    throw new Error(`字幕对象 ${index} 的word ${wordIndex} 格式无效`);
-                }
-            });
+            // 确保words数组存在
+            if (!subtitle.words) {
+                subtitle.words = [{
+                    text: subtitle.text,
+                    start: subtitle.start_time,
+                    end: subtitle.end_time
+                }];
+            }
         });
+
+        // 确保translations对象存在
+        if (!data.translations) {
+            data.translations = {};
+        }
 
         fs.writeFileSync(subtitlePath, JSON.stringify(data, null, 2), 'utf8');
         console.log('[文件服务] 字幕缓存保存成功');
@@ -146,23 +149,32 @@ const saveSubtitleCache = (fileHash, data) => {
 
 function loadSubtitleCache(fileHash) {
     const filePath = path.join(getPodcastDataPath(), 'subtitles', `${fileHash}.json`);
+    console.log('[文件服务] 尝试加载字幕缓存:', filePath);
+    
     try {
-        if (fs.existsSync(filePath)) {
-            const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
-            // 确保 translations 属性存在
-            if (!data.translations) {
-                data.translations = {};
-            }
-            return data;
-        } else {
-            console.warn(`未找到字幕缓存文件: ${filePath}`);
-            // 如果文件不存在，返回一个包含空 translations 对象的结构
-            return { subtitles: [], file_path: '', translations: {} };
+        if (!fs.existsSync(filePath)) {
+            console.log('[文件服务] 字幕缓存文件不存在，返回空数据');
+            return null;  // 返回null而不是空对象，这样可以触发重新转录
         }
+
+        const data = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+        console.log('[文件服务] 成功加载字幕缓存');
+        
+        // 验证数据格式
+        if (!data.subtitles || !Array.isArray(data.subtitles)) {
+            console.warn('[文件服务] 字幕缓存数据格式无效');
+            return null;
+        }
+
+        // 确保 translations 属性存在
+        if (!data.translations) {
+            data.translations = {};
+        }
+
+        return data;
     } catch (error) {
-        console.error(`加载字幕缓存失败: ${error}`);
-        // 发生错误时也返回一个包含空 translations 对象的结构
-        return { subtitles: [], file_path: '', translations: {} };
+        console.error('[文件服务] 加载字幕缓存失败:', error);
+        return null;  // 返回null而不是空对象
     }
 }
 

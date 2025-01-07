@@ -430,9 +430,38 @@ async function showContextMenu(event, hash) {
         });
         
         if (confirmed === 0) {
-            await window.electronAPI.deleteHistoryFile(hash);
-            const audioIndex = await window.electronAPI.getAudioIndex();
-            updateFileList(audioIndex);
+            try {
+                console.log('[渲染进程] 开始删除文件:', hash);
+                
+                // 如果删除的是当前显示的文件，先清理状态
+                if (hash === currentFileHash) {
+                    console.log('[渲染进程] 删除的是当前显示的文件，清理状态');
+                    clearSubtitleState();
+                }
+
+                // 删除文件
+                await window.electronAPI.deleteHistoryFile(hash);
+                
+                // 更新文件列表
+                const audioIndex = await window.electronAPI.getAudioIndex();
+                updateFileList(audioIndex);
+                
+                // 移除当前选中状态
+                document.querySelectorAll('.history-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+
+                // 重置文件输入框，确保能重新选择相同文件
+                const fileInput = document.getElementById('file-input');
+                if (fileInput) {
+                    fileInput.value = '';
+                }
+                
+                console.log('[渲染进程] 文件删除成功，状态已清理');
+            } catch (error) {
+                console.error('[渲染进程] 删除文件失败:', error);
+                alert('删除文件失败: ' + error.message);
+            }
         }
         menu.remove();
     });
@@ -932,6 +961,8 @@ function initDropZone() {
 
     // 点击选择文件
     dropZone.addEventListener('click', () => {
+        // 每次点击前都重置文件输入框的值
+        fileInput.value = '';
         fileInput.click();
     });
 
@@ -959,6 +990,8 @@ function initDropZone() {
 
         const file = e.dataTransfer.files[0];
         if (file) {
+            // 重置文件输入框的值，以支持重复选择相同文件
+            fileInput.value = '';
             await handleAudioFile(file.path);
         }
     });
@@ -966,39 +999,83 @@ function initDropZone() {
 
 // 处理音频文件
 async function handleAudioFile(filePath) {
+    console.log('[渲染进程] 处理音频文件:', filePath);
+    
+    // 记录最后使用的文件路径，用于重试功能
+    lastFilePath = filePath;
+    
+    // 在处理新文件前清理所有状态
+    clearSubtitleState();
+    
+    const subtitleDisplay = document.getElementById('subtitle-display');
+    
     try {
-        const subtitleDisplay = document.getElementById('subtitle-display');
-        
-        // 显示转录中的提示
+        // 显示加载状态
         subtitleDisplay.innerHTML = `
             <div class="transcription-status">
                 <div class="loading-spinner"></div>
-                <p>正在转录音频，请稍候...</p>
+                <p>正在处理音频文件，请稍候...</p>
             </div>
         `;
 
-        // 获取文件hash
+        // 获取当前选择的转录服务
+        const whisperPill = document.querySelector('[data-translator="whisper"]');
+        const assemblyAIPill = document.querySelector('[data-translator="assembly_ai"]');
+        const transcriptionService = whisperPill?.classList.contains('active') ? 'whisper' : 
+                                   assemblyAIPill?.classList.contains('active') ? 'assemblyai' : 'assemblyai';
+
+        // 获取文件hash和缓存状态
         const result = await window.electronAPI.selectAudio(filePath);
+        console.log('[渲染进程] 文件处理结果:', result);
+        
+        // 更新当前文件hash
+        currentFileHash = result.fileHash;
         
         if (result.cachedData) {
-            // 如果有缓存，直接使用缓存数据
+            console.log('[渲染进程] 使用缓存数据');
             subtitles = result.cachedData.subtitles;
             translations = result.cachedData.translations || {};
-            displaySubtitles(subtitles, translations, showTranslation);
             
+            // 更新翻译开关状态
+            const translationToggle = document.getElementById('show-translation');
+            if (translationToggle) {
+                const hasTranslations = translations && Object.keys(translations).length > 0;
+                translationToggle.disabled = !hasTranslations;
+                if (!hasTranslations) {
+                    translationToggle.checked = false;
+                    showTranslation = false;
+                }
+            }
+            
+            displaySubtitles(subtitles, translations, showTranslation);
         } else {
+            console.log('[渲染进程] 开始转录');
+            // 显示转录状态
+            subtitleDisplay.innerHTML = `
+                <div class="transcription-status">
+                    <div class="loading-spinner"></div>
+                    <p>正在使用${transcriptionService === 'whisper' ? 'Whisper' : 'AssemblyAI'}服务转录音频，请稍后...</p>
+                </div>
+            `;
+
             // 无缓存，需要进行转录
             const transcribeResult = await window.electronAPI.transcribeAudio({
                 filePath: filePath,
-                hash: result.fileHash
+                hash: result.fileHash,
+                transcriptionService: transcriptionService
             });
             
+            console.log('[渲染进程] 转录完成');
             subtitles = transcribeResult.subtitles;
-            displaySubtitles(subtitles, {}, showTranslation);
+            translations = {};
+            displaySubtitles(subtitles, translations, false);
         }
 
         // 更新音频播放器源
-        audioPlayer.src = filePath;
+        if (audioPlayer) {
+            audioPlayer.src = filePath;
+            await audioPlayer.load(); // 确保音频完全加载
+        }
         
         // 更新文件列表并立即显示
         const audioIndex = await window.electronAPI.getAudioIndex();
@@ -1007,21 +1084,34 @@ async function handleAudioFile(filePath) {
         // 设置新添加的文件为激活状态
         const currentItem = document.querySelector(`.history-item[data-hash="${result.fileHash}"]`);
         if (currentItem) {
-            // 除其他项的激活状态
+            // 移除其他项的激活状态
             document.querySelectorAll('.history-item').forEach(item => {
                 item.classList.remove('active');
             });
             currentItem.classList.add('active');
+            currentItem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
     } catch (error) {
+        console.error('[渲染进程] 处理音频文件失败:', error);
+        // 清理状态
+        clearSubtitleState();
         // 显示错误信息
         subtitleDisplay.innerHTML = `
             <div class="error-message">
-                <p>转录失败: ${error.message}</p>
+                <p>处理失败: ${error.message}</p>
+                <button onclick="retryLastFile()" class="retry-button">重试</button>
             </div>
         `;
-        console.error('处理音频文件失败:', error);
+    }
+}
+
+// 添加重试功能
+let lastFilePath = null;
+
+function retryLastFile() {
+    if (lastFilePath) {
+        handleAudioFile(lastFilePath);
     }
 }
 
@@ -2419,4 +2509,81 @@ function openSetWhisperServerModal() {
             alert('服务器URL不能为空');
         }
     });
+}
+
+// 修改clearSubtitleState函数，使其更完整
+function clearSubtitleState() {
+    console.log('[渲染进程] 清理所有状态...');
+    
+    // 重置文件输入框，确保能重新选择相同文件
+    const fileInput = document.getElementById('file-input');
+    if (fileInput) {
+        fileInput.value = '';
+    }
+
+    // 清理字幕显示区域
+    const subtitleDisplay = document.getElementById('subtitle-display');
+    if (subtitleDisplay) {
+        subtitleDisplay.innerHTML = ''; // 直接清空字幕区域，不显示任何提示文字
+    }
+
+    // 清理内存中的字幕数据
+    subtitles = [];
+    translations = {};
+    currentFileHash = null;
+    lastFilePath = null;
+    currentSubtitleIndex = -1;
+    currentWordIndex = -1;
+    wordPositions = [];
+    cachedData = null;
+    
+    // 清理音频播放器状态
+    if (audioPlayer) {
+        audioPlayer.pause();
+        audioPlayer.src = '';
+        audioPlayer.currentTime = 0;
+        audioPlayer.load(); // 强制重新加载以清理任何残留状态
+    }
+
+    // 重置翻译开关
+    const translationToggle = document.getElementById('show-translation');
+    if (translationToggle) {
+        translationToggle.checked = false;
+        translationToggle.disabled = true;
+        showTranslation = false;
+    }
+
+    // 清理所有字幕高亮
+    document.querySelectorAll('.subtitle-block.active, .subtitle-block.tts-active').forEach(el => {
+        el.classList.remove('active', 'tts-active');
+    });
+
+    // 清理单词高亮
+    document.querySelectorAll('.word.active, .word.selected, .word.word-active').forEach(el => {
+        el.classList.remove('active', 'selected', 'word-active');
+    });
+
+    // 停止任何正在进行的TTS播放
+    if (isTTSPlaying) {
+        stopTTSPlayback();
+    }
+
+    // 重置TTS相关状态
+    currentTTSIndex = -1;
+    isTTSPlaying = false;
+    ttsAudioQueue = [];
+
+    // 重置按钮状态
+    const summaryButton = document.querySelector('.option-pill[data-translator="summary"]');
+    if (summaryButton) {
+        summaryButton.classList.add('disabled');
+    }
+
+    const ttsButton = document.querySelector('.option-pill[data-translator="tts"]');
+    if (ttsButton) {
+        ttsButton.classList.add('disabled');
+        ttsButton.classList.remove('active');
+    }
+
+    console.log('[渲染进程] 状态清理完成');
 }
