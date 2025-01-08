@@ -109,7 +109,7 @@ cmake --build build --config Release
 ./build/bin/whisper-cli -m models/ggml-base.en.bin -f audio/test.mp3
 
 # 以server方式启动whisper.cpp服务
-./build/bin/whisper-server -m ./models/ggml-base.en.bin --port 1123
+./build/bin/whisper-server -m ./models/ggml-base.en.bin --port 1123  --convert
 ```
 
 使用postman测试是否whisper.cpp服务部署成功，请求地址：http://localhost:1123/inference
