@@ -69,7 +69,7 @@ brew install ollama
 
 # 启动 Ollama 服务
 ollama serve
-ollama pull qwen2.5:0.5b    # 通义千问2.5模型，支持中英翻译，可选用其他模型
+ollama pull qwen2.5:0.5b    # 通义千问Qwen2.5模型，支持中英翻译，可选用其他模型
 ```
 
 可使用postman测试是否大模型部署成功，请求地址：http://localhost:11434/api/chat
