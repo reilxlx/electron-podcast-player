@@ -767,8 +767,49 @@ function displaySubtitles(subtitles, translations, showTranslation) {
             });
             originalText.appendChild(wordsFragment);
         } else {
-            console.error(`[渲染进程] 字幕 ${index} 没有有效的words数组:`, subtitle);
-            originalText.textContent = subtitle.text || '';
+            // 修改这里：为Whisper转录的字幕创建一个span元素
+            const textSpan = document.createElement('span');
+            textSpan.className = 'word';
+            textSpan.textContent = subtitle.text || '';
+            
+            // 添加时间信息
+            if (typeof subtitle.start_time === 'number') textSpan.dataset.startTime = subtitle.start_time;
+            if (typeof subtitle.end_time === 'number') textSpan.dataset.endTime = subtitle.end_time;
+            
+            // 添加到wordPositions数组
+            wordPositions.push({
+                element: textSpan,
+                startTime: subtitle.start_time,
+                endTime: subtitle.end_time
+            });
+
+            // 添加双击和右键菜单事件
+            textSpan.addEventListener('dblclick', (e) => {
+                e.preventDefault();
+                if (clickTimer) {
+                    clearTimeout(clickTimer);
+                    clickTimer = null;
+                }
+                document.querySelectorAll('.word.selected').forEach(el => el.classList.remove('selected'));
+                textSpan.classList.add('selected');
+                const selection = window.getSelection();
+                const range = document.createRange();
+                range.selectNodeContents(textSpan);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            });
+
+            textSpan.addEventListener('contextmenu', (e) => {
+                e.preventDefault();
+                const selection = window.getSelection();
+                const selectedText = selection.toString().trim();
+                if (selectedText) {
+                    textSpan.classList.add('selected');
+                    showWordTranslationMenu(e, selectedText);
+                }
+            });
+
+            originalText.appendChild(textSpan);
         }
 
         subtitleBlock.appendChild(originalText);
@@ -1671,6 +1712,7 @@ async function translateWord(word) {
         const activePill = document.querySelector('.option-pill.active');
         const selectedTranslator = activePill ? activePill.getAttribute('data-translator') : 'google';
         let apiKey = null;
+        let model = null;
         
         if (selectedTranslator === 'silicon_cloud') {
             const config = await window.electronAPI.getConfig();
@@ -1678,6 +1720,12 @@ async function translateWord(word) {
                 throw new Error('未配置SiliconCloud API密钥');
             }
             apiKey = config.silicon_cloud_api_key;
+        } else if (selectedTranslator === 'ollama') {
+            const config = await window.electronAPI.getConfig();
+            if (!config || !config.ollama_model) {
+                throw new Error('未配置Ollama模型');
+            }
+            model = config.ollama_model;
         }
         
         // 调用翻译API
@@ -1685,25 +1733,21 @@ async function translateWord(word) {
             fileHash: 'word_translation',
             subtitles: [{ index: 0, text: word }],
             translator: selectedTranslator,
-            apiKey: apiKey
+            apiKey: apiKey,
+            model: model
         });
 
         // 显示翻译结果
-        showTranslationResult(word, translationResult[0]?.text || '翻译失败');
+        const translation = translationResult && translationResult[0] ? translationResult[0].text : '翻译失败';
+        showTranslationResult(word, translation);
         
         // 移除选中样式
         document.querySelectorAll('.word.selected').forEach(el => {
             el.classList.remove('selected');
         });
-        
     } catch (error) {
-        console.error('翻译失败:', error);
-        showTranslationResult(word, `翻译失败: ${error.message}`);
-        
-        // 移除选中样式
-        document.querySelectorAll('.word.selected').forEach(el => {
-            el.classList.remove('selected');
-        });
+        console.error('[渲染进程] 单词翻译失败:', error);
+        showTranslationResult(word, '翻译失败: ' + error.message);
     }
 }
 

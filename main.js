@@ -217,6 +217,11 @@ async function createWindow() {
         model
       );
 
+      // 如果是单词翻译，直接返回翻译结果
+      if (fileHash === 'word_translation') {
+        return translatedSubtitles;
+      }
+
       // 更新缓存数据
       const cachedData = loadSubtitleCache(fileHash);
 

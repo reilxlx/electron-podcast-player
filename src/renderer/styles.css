@@ -392,6 +392,11 @@ body {
 }
 
 /* 为active状态下根据说话者区分颜色高亮 */
+.subtitle-block.active {
+  background-color: #E9F1FF;
+  box-shadow: inset 3px 0 0 #007AFF;
+}
+
 .subtitle-block.active[data-speaker="A"] {
   background-color: #E9F1FF;
   box-shadow: inset 3px 0 0 #007AFF;
