@@ -11,6 +11,9 @@
 - 记忆播放位置，支持断点续播
 
 ### 📝 字幕功能
+- 支持多种音频转写引擎：
+  - Whisper.cpp：本地转写，无需联网
+  - AssemblyAI：云端专业转写服务
 - 支持实时音频转写，自动生成字幕
 - 双语字幕同步显示
 - 当前播放词句智能高亮
@@ -23,6 +26,10 @@
 - 实时翻译功能，支持逐句翻译
 - 单词级别翻译，双击单词获取释义
 - 智能缓存翻译结果，提高响应速度
+
+### 💾 AI 内容理解
+- 支持音频内容智能总结
+- 使用大语言模型分析音频内容
 
 ### 💾 TTS语音合成
 - 支持中文TTS播放功能
@@ -118,7 +125,6 @@ cmake --build build --config Release
 
 4. 创建必要的目录结构
 ```bash
-mkdir -p podcast_data/{audio,subtitles}
 touch podcast_data/audio_index.json
 touch podcast_data/config.json
 ```
@@ -131,8 +137,9 @@ touch podcast_data/config.json
   "silicon_cloud_api_key": "your_silicon_cloud_api_key_here",
   "silicon_cloud_model": "Qwen/Qwen2.5-7B-Instruct",
   "silicon_cloud_summary_model": "THUDM/glm-4-9b-chat",
-  "silicon_cloud_TTS_name": "RVC-Boss/GPT-SoVITS",
-  "ollama_model": "qwen2.5:0.5b"
+  "silicon_cloud_TTS_name": "RVC-Boss/GPT-SoVITS",  "ollama_model": "qwen2.5:0.5b",
+  "ollama_server_url": "http://localhost:11434/api/chat",
+  "whisper_server_url": "http://127.0.0.1:1123/inference"
 }
 ```
 
@@ -164,8 +171,9 @@ npm run build:mac
    - 支持拖拽文件导入
 
 2. **音频转写**
+   - 支持选择 Whisper.cpp 本地转写或 AssemblyAI 云端转写
    - 导入音频后自动开始转写
-   - 右键点击 Assembly 转录按钮可配置 API Key
+   - 可在设置中切换转写引擎
    - 转写完成后自动显示字幕
 
 3. **翻译设置**
@@ -202,6 +210,7 @@ src/
     ├── player.js            # 播放控制
     ├── subtitleParser.js    # 字幕解析
     ├── transcriptionService.js  # 语音转写
+    ├── whisperTranscriptionService.js  # Whisper本地转写
     ├── translationService.js   # 翻译服务
     ├── ollamaTranslationService.js  # Ollama本地翻译服务
     ├── summaryService.js      # 内容总结
@@ -223,15 +232,25 @@ src/
    - 如遇到翻译质量问题，可尝试切换不同模型
    - Ollama 服务默认端口为 11434，确保未被占用
 
-3. **兼容性说明**
+3. **Whisper.cpp 使用说明**
+   - 确保系统已正确安装 whisper.cpp
+   - 本地转写速度取决于CPU性能
+   - 支持多种语言模型选择
+   - 建议使用 base.en 模型以平衡性能和准确度
+   - 转写服务默认端口为 1123，确保未被占用
+
+4. **兼容性说明**
    - 目前主要支持 macOS 平台
    - Ollama 要求 macOS 12.0 或更高版本
+   - Whisper.cpp 需要 C++编译环境
    - 音频格式建议使用 MP3 或 WAV
 
-4. **最佳实践**
+5. **最佳实践**
    - 定期备份重要的翻译和字幕数据
    - 使用高质量音频源以获得更好的转写效果
-   - 优先使用 Google NotebookLM 生成的音频以获得最佳体验
+   - 优先使用本地服务以获得更快的响应速度
+   - 根据实际需求选择合适的转写和翻译引擎
+   - 定期清理缓存文件以节省存储空间
 
 ## ⭐ 支持项目
 
