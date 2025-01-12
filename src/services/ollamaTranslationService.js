@@ -36,11 +36,15 @@ async function ollamaTranslate(text, model = 'qwen2.5:0.5b', timeout = 30000) {
         stream: false
     };
 
+    // 获取配置
+    const config = require('../../podcast_data/config.json');
+    const serverUrl = config.ollama_server_url || 'http://localhost:11434/api/chat';
+
     const max_retries = 3;
     for (let i = 0; i < max_retries; i++) {
         try {
             console.log(`[Ollama翻译] 尝试第 ${i + 1} 次请求...`);
-            const response = await fetch('http://localhost:11434/api/chat', {
+            const response = await fetch(serverUrl, {
                 method: 'POST',
                 headers: {
                     "Content-Type": "application/json"

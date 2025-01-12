@@ -2395,7 +2395,28 @@ function showOllamaModelContextMenu(event) {
         openSetOllamaModelModal();
     });
 
+    // 添加"设置服务URL"选项
+    const setUrlBtn = document.createElement('button');
+    setUrlBtn.className = 'context-menu-item';
+    setUrlBtn.innerHTML = `
+        <svg class="menu-icon" viewBox="0 0 16 16">
+            <path d="M8 1v14M4 5l4-4 4 4M4 11h8" 
+                  stroke="currentColor" 
+                  fill="none" 
+                  stroke-width="1.2" 
+                  stroke-linecap="round" 
+                  stroke-linejoin="round"/>
+        </svg>
+        <span>设置服务URL</span>
+    `;
+
+    setUrlBtn.addEventListener('click', () => {
+        menu.remove();
+        openSetOllamaUrlModal();
+    });
+
     menu.appendChild(setModelBtn);
+    menu.appendChild(setUrlBtn);
     document.body.appendChild(menu);
 
     // 设置菜单位置
@@ -2501,6 +2522,71 @@ function openSetOllamaModelModal() {
             }
         } else {
             alert('模型名称不能为空');
+        }
+    });
+}
+
+// 添加设置Ollama服务URL的模态框函数
+async function openSetOllamaUrlModal() {
+    // 获取当前配置
+    const config = await window.electronAPI.getConfig();
+    const currentUrl = config.ollama_server_url || 'http://localhost:11434/api/chat';
+
+    const alertBox = document.createElement('div');
+    alertBox.className = 'macos-alert';
+    alertBox.innerHTML = `
+        <div class="macos-alert-icon">
+            <img src="assets/ollama.png" width="24" height="24" alt="Ollama Logo">
+        </div>
+        <div class="macos-alert-message">
+            <p class="macos-alert-title">设置Ollama服务URL</p>
+            <input type="text" class="macos-alert-input" id="ollama-url-input" value="${currentUrl}" placeholder="请输入Ollama服务URL">
+        </div>
+        <div class="macos-alert-buttons">
+            <button class="macos-alert-button" id="save-ollama-url">保存</button>
+            <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">取消</button>
+        </div>
+    `;
+    document.body.appendChild(alertBox);
+
+    // 添加保存按钮的点击事件
+    const saveButton = alertBox.querySelector('#save-ollama-url');
+    saveButton.addEventListener('click', async () => {
+        const urlInput = alertBox.querySelector('#ollama-url-input');
+        const newUrl = urlInput.value.trim();
+
+        if (!newUrl) {
+            alert('请输入有效的URL');
+            return;
+        }
+
+        try {
+            // 更新配置
+            await window.electronAPI.saveConfig({
+                ...config,
+                ollama_server_url: newUrl
+            });
+            alertBox.remove();
+
+            // 显示成功提示
+            const successBox = document.createElement('div');
+            successBox.className = 'macos-alert';
+            successBox.innerHTML = `
+                <div class="macos-alert-icon">
+                    <img src="assets/ollama.png" width="24" height="24" alt="Ollama Logo">
+                </div>
+                <div class="macos-alert-message">
+                    <p class="macos-alert-title">设置成功</p>
+                    <p class="macos-alert-text">Ollama服务URL已更新为：${newUrl}</p>
+                </div>
+                <div class="macos-alert-buttons">
+                    <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">确定</button>
+                </div>
+            `;
+            document.body.appendChild(successBox);
+        } catch (error) {
+            console.error('保存Ollama服务URL失败:', error);
+            alert('保存失败: ' + error.message);
         }
     });
 }
