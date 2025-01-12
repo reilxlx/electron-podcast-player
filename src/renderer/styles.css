@@ -44,6 +44,7 @@ body {
   flex-direction: column;
   padding-top: 12px;
   box-sizing: border-box;
+  -webkit-app-region: drag;
 }
 
 .sidebar.collapsed {
@@ -81,6 +82,7 @@ body {
   overflow-y: auto;
   padding: 16px;
   height: calc(100% - 116px);
+  -webkit-app-region: drag;
 }
 
 /* main-content绝对定位，与sidebar同级 */
@@ -484,6 +486,7 @@ audio {
   margin-bottom: 8px;
   background-color: transparent;
   position: relative;
+  -webkit-app-region: no-drag;
 }
 
 .history-item:hover {
@@ -1303,4 +1306,11 @@ audio {
     background-color: var(--background-color);
     color: var(--text-primary);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 确保搜索框和拖放区域不受影响 */
+.search-container,
+.drop-zone,
+.drop-content {
+  -webkit-app-region: no-drag;
 }
