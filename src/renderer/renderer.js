@@ -669,7 +669,8 @@ function displaySubtitles(subtitles, translations, showTranslation) {
     document.removeEventListener('click', handleWordClick);
     document.addEventListener('click', handleWordClick);
 
-    const currentTime = audioPlayer ? audioPlayer.currentTime * 1000 : 0;
+    // 修改这里：只有在音频正在播放时才检查当前时间和高亮
+    const currentTime = audioPlayer && !audioPlayer.paused ? audioPlayer.currentTime * 1000 : -1;
     
     // 预先创建常用的DOM元素
     const createWordSpan = (word) => {
@@ -696,7 +697,8 @@ function displaySubtitles(subtitles, translations, showTranslation) {
             subtitleBlock.dataset.speaker = subtitle.speaker;
         }
 
-        if (currentTime >= subtitle.start_time && currentTime <= subtitle.end_time) {
+        // 修改这里：只有在音频正在播放且时间匹配时才添加高亮
+        if (currentTime >= 0 && currentTime >= subtitle.start_time && currentTime <= subtitle.end_time) {
             subtitleBlock.classList.add('active');
             currentSubtitleIndex = index;
         }
@@ -886,6 +888,20 @@ function toggleTranslation() {
 }
 
 function updateSubtitleHighlight(currentTime) {
+    // 如果音频暂停，不进行高亮
+    if (!audioPlayer || audioPlayer.paused) {
+        // 移除所有高亮
+        const container = document.querySelector('.subtitle-container');
+        if (container) {
+            const oldBlock = container.querySelector('.subtitle-block.active');
+            if (oldBlock) {
+                oldBlock.classList.remove('active');
+            }
+        }
+        currentSubtitleIndex = -1;
+        return;
+    }
+
     // 使用二分查找来找到当前时间对应的字幕索引
     let newIndex = findSubtitleIndex(currentTime);
 
@@ -968,6 +984,15 @@ function onTimeUpdate() {
 }
 
 function updateWordHighlight(currentTime) {
+    // 如果音频暂停，移除所有单词高亮
+    if (!audioPlayer || audioPlayer.paused) {
+        if (lastWordIndex !== -1 && wordPositions[lastWordIndex]) {
+            wordPositions[lastWordIndex].element.classList.remove('word-active');
+        }
+        lastWordIndex = -1;
+        return;
+    }
+
     // 使用二分查找找到新的单词索引
     const newWordIndex = findWordIndex(currentTime);
 
