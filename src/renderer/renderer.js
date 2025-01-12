@@ -767,49 +767,65 @@ function displaySubtitles(subtitles, translations, showTranslation) {
             });
             originalText.appendChild(wordsFragment);
         } else {
-            // 修改这里：为Whisper转录的字幕创建一个span元素
-            const textSpan = document.createElement('span');
-            textSpan.className = 'word';
-            textSpan.textContent = subtitle.text || '';
+            // 修改这里：为Whisper转录的字幕创建多个word span元素
+            const text = subtitle.text || '';
+            const words = text.split(/\s+/); // 按空格分割文本成单词
             
-            // 添加时间信息
-            if (typeof subtitle.start_time === 'number') textSpan.dataset.startTime = subtitle.start_time;
-            if (typeof subtitle.end_time === 'number') textSpan.dataset.endTime = subtitle.end_time;
-            
-            // 添加到wordPositions数组
-            wordPositions.push({
-                element: textSpan,
-                startTime: subtitle.start_time,
-                endTime: subtitle.end_time
-            });
+            words.forEach((word, index) => {
+                const textSpan = document.createElement('span');
+                textSpan.className = 'word';
+                textSpan.textContent = word;
+                
+                // 计算每个单词的大致时间
+                const duration = subtitle.end_time - subtitle.start_time;
+                const wordDuration = duration / words.length;
+                const wordStartTime = subtitle.start_time + (wordDuration * index);
+                const wordEndTime = wordStartTime + wordDuration;
+                
+                // 添加时间信息
+                textSpan.dataset.startTime = wordStartTime;
+                textSpan.dataset.endTime = wordEndTime;
+                
+                // 添加到wordPositions数组
+                wordPositions.push({
+                    element: textSpan,
+                    startTime: wordStartTime,
+                    endTime: wordEndTime
+                });
 
-            // 添加双击和右键菜单事件
-            textSpan.addEventListener('dblclick', (e) => {
-                e.preventDefault();
-                if (clickTimer) {
-                    clearTimeout(clickTimer);
-                    clickTimer = null;
-                }
-                document.querySelectorAll('.word.selected').forEach(el => el.classList.remove('selected'));
-                textSpan.classList.add('selected');
-                const selection = window.getSelection();
-                const range = document.createRange();
-                range.selectNodeContents(textSpan);
-                selection.removeAllRanges();
-                selection.addRange(range);
-            });
-
-            textSpan.addEventListener('contextmenu', (e) => {
-                e.preventDefault();
-                const selection = window.getSelection();
-                const selectedText = selection.toString().trim();
-                if (selectedText) {
+                // 添加双击和右键菜单事件
+                textSpan.addEventListener('dblclick', (e) => {
+                    e.preventDefault();
+                    if (clickTimer) {
+                        clearTimeout(clickTimer);
+                        clickTimer = null;
+                    }
+                    document.querySelectorAll('.word.selected').forEach(el => el.classList.remove('selected'));
                     textSpan.classList.add('selected');
-                    showWordTranslationMenu(e, selectedText);
+                    const selection = window.getSelection();
+                    const range = document.createRange();
+                    range.selectNodeContents(textSpan);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                });
+
+                textSpan.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    const selection = window.getSelection();
+                    const selectedText = selection.toString().trim();
+                    if (selectedText) {
+                        textSpan.classList.add('selected');
+                        showWordTranslationMenu(e, selectedText);
+                    }
+                });
+
+                originalText.appendChild(textSpan);
+                
+                // 在单词之间添加空格
+                if (index < words.length - 1) {
+                    originalText.appendChild(document.createTextNode(' '));
                 }
             });
-
-            originalText.appendChild(textSpan);
         }
 
         subtitleBlock.appendChild(originalText);
@@ -1141,7 +1157,6 @@ async function handleAudioFile(filePath) {
         subtitleDisplay.innerHTML = `
             <div class="error-message">
                 <p>处理失败: ${error.message}</p>
-                <button onclick="retryLastFile()" class="retry-button">重试</button>
             </div>
         `;
     }

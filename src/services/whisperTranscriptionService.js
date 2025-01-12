@@ -85,16 +85,28 @@ function parseSRT(srtContent) {
         // 合并剩余行作为文本内容
         const text = lines.slice(2).join(' ').trim();
 
+        // 将文本拆分成单词
+        const words = text.split(/\s+/);
+        const duration = endTime - startTime;
+        const wordDuration = duration / words.length;
+
+        // 为每个单词创建时间戳
+        const wordObjects = words.map((word, index) => {
+            const wordStartTime = startTime + (wordDuration * index);
+            const wordEndTime = wordStartTime + wordDuration;
+            return {
+                text: word,
+                start: Math.round(wordStartTime),
+                end: Math.round(wordEndTime)
+            };
+        });
+
         // 创建字幕对象
         const subtitle = {
             start_time: startTime,
             end_time: endTime,
             text: text,
-            words: [{
-                text: text,
-                start: startTime,
-                end: endTime
-            }]
+            words: wordObjects
         };
 
         subtitles.push(subtitle);
