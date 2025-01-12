@@ -40,5 +40,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSiliconCloudModel: () => ipcRenderer.invoke('get-silicon-cloud-model'),
   setSiliconCloudModel: (translator, model) => ipcRenderer.invoke('set-silicon-cloud-model', { translator, model }),
 
-  textToSpeech: (params) => ipcRenderer.invoke('text-to-speech', params)
+  textToSpeech: (params) => ipcRenderer.invoke('text-to-speech', params),
+  saveSummaryImage: (params) => ipcRenderer.invoke('save-summary-image', params)
 });

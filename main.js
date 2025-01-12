@@ -371,6 +371,31 @@ async function createWindow() {
         throw error;
     }
   });
+
+  // 添加保存图片的IPC处理器
+  ipcMain.handle('save-summary-image', async (event, { dataUrl, defaultPath }) => {
+    try {
+      const result = await dialog.showSaveDialog({
+        defaultPath: defaultPath,
+        filters: [
+          { name: 'PNG Image', extensions: ['png'] }
+        ],
+        properties: ['createDirectory', 'showOverwriteConfirmation']
+      });
+
+      if (!result.canceled && result.filePath) {
+        // 将base64数据转换为buffer并保存
+        const base64Data = dataUrl.replace(/^data:image\/png;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        fs.writeFileSync(result.filePath, buffer);
+        return { success: true, filePath: result.filePath };
+      }
+      return { success: false, message: 'User cancelled' };
+    } catch (error) {
+      console.error('保存图片失败:', error);
+      return { success: false, message: error.message };
+    }
+  });
 }
 // 添加IPC处理器
 ipcMain.handle('get-silicon-cloud-api-key', async () => {

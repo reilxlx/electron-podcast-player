@@ -1921,11 +1921,109 @@ function showSummaryContextMenu(event) {
             `;
             document.body.appendChild(resultModal);
 
-            // 分享按钮逻辑 (暂不实现)
+            // 分享按钮逻辑
             const shareButton = document.getElementById('share-summary-button');
-            shareButton.addEventListener('click', () => {
-                // 在这里添加分享逻辑
-                console.log('分享按钮被点击');
+            shareButton.addEventListener('click', async () => {
+                try {
+                    // 显示加载状态
+                    const loadingAlert = document.createElement('div');
+                    loadingAlert.className = 'macos-alert';
+                    loadingAlert.innerHTML = `
+                        <div class="macos-alert-message">
+                            <p class="macos-alert-title">正在生成图片</p>
+                            <p class="macos-alert-text">请稍候...</p>
+                        </div>
+                    `;
+                    document.body.appendChild(loadingAlert);
+
+                    // 加载html2canvas库
+                    const html2canvas = await loadHtml2Canvas();
+
+                    const summaryAlert = document.querySelector('.macos-alert');
+                    if (!summaryAlert) return;
+
+                    // 创建一个新的div用于截图，保持macOS风格
+                    const captureDiv = document.createElement('div');
+                    captureDiv.style.cssText = `
+                        position: fixed;
+                        top: -9999px;
+                        left: -9999px;
+                        width: 600px;
+                        background: #FFFFFF;
+                        border-radius: 12px;
+                        padding: 32px;
+                        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+                        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+                    `;
+
+                    // 添加标题和图标
+                    captureDiv.innerHTML = `
+                        <div style="display: flex; align-items: center; margin-bottom: 24px;">
+                            <svg width="32" height="32" viewBox="0 0 32 32" style="margin-right: 16px;">
+                                <circle cx="16" cy="16" r="16" fill="#007AFF" opacity="0.1"/>
+                                <path d="M10 16l4 4l8-8" stroke="#007AFF" stroke-width="2" fill="none"/>
+                            </svg>
+                            <div style="flex: 1;">
+                                <div style="font-size: 18px; font-weight: 600; color: #1D1D1F; margin-bottom: 8px;">内容总结</div>
+                                <div style="font-size: 14px; color: #86868B;">由 SiliconCloud AI 生成</div>
+                            </div>
+                        </div>
+                        <div style="font-size: 15px; line-height: 1.6; color: #1D1D1F; white-space: pre-wrap;">
+                            ${document.querySelector('.macos-alert-text').textContent}
+                        </div>
+                    `;
+
+                    document.body.appendChild(captureDiv);
+
+                    // 等待一下确保DOM完全渲染
+                    await new Promise(resolve => setTimeout(resolve, 100));
+
+                    // 使用html2canvas进行截图
+                    const canvas = await html2canvas(captureDiv, {
+                        backgroundColor: '#FFFFFF',
+                        scale: 2, // 使用2倍缩放以获得更清晰的图像
+                        useCORS: true,
+                        logging: false
+                    });
+
+                    // 获取当前音频文件名
+                    const audioPlayer = document.getElementById('audio-player');
+                    const audioFileName = audioPlayer.src.split('/').pop().split('.')[0];
+                    const defaultPath = `${audioFileName}_summary.png`;
+
+                    // 将canvas转换为图片并保存
+                    const dataUrl = canvas.toDataURL('image/png');
+                    const result = await window.electronAPI.saveSummaryImage({
+                        dataUrl,
+                        defaultPath
+                    });
+
+                    // 清理临时元素
+                    document.body.removeChild(captureDiv);
+                    loadingAlert.remove();
+
+                    if (result.success) {
+                        // 显示成功提示
+                        showMacOSAlert({
+                            title: '保存成功',
+                            message: `总结图片已保存到：${result.filePath}`,
+                            buttons: [{
+                                label: '确定',
+                                role: 'ok'
+                            }]
+                        });
+                    }
+                } catch (error) {
+                    console.error('生成图片失败:', error);
+                    showMacOSAlert({
+                        title: '生成图片失败',
+                        message: error.message,
+                        buttons: [{
+                            label: '确定',
+                            role: 'ok'
+                        }]
+                    });
+                }
             });
 
         } catch (error) {
@@ -2764,4 +2862,21 @@ function clearSubtitleState() {
     }
 
     console.log('[渲染进程] 状态清理完成');
+}
+
+// 添加html2canvas库加载函数
+function loadHtml2Canvas() {
+    return new Promise((resolve, reject) => {
+        if (window.html2canvas) {
+            resolve(window.html2canvas);
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+        script.async = true;
+        script.onload = () => resolve(window.html2canvas);
+        script.onerror = () => reject(new Error('Failed to load html2canvas'));
+        document.head.appendChild(script);
+    });
 }
