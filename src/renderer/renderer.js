@@ -1915,10 +1915,18 @@ function showSummaryContextMenu(event) {
                     <p class="macos-alert-text" style="white-space: pre-wrap; text-align: left;">${summary}</p>
                 </div>
                 <div class="macos-alert-buttons">
+                    <button class="macos-alert-button" id="share-summary-button">分享</button>
                     <button class="macos-alert-button" onclick="this.parentElement.parentElement.remove()">关闭</button>
                 </div>
             `;
             document.body.appendChild(resultModal);
+
+            // 分享按钮逻辑 (暂不实现)
+            const shareButton = document.getElementById('share-summary-button');
+            shareButton.addEventListener('click', () => {
+                // 在这里添加分享逻辑
+                console.log('分享按钮被点击');
+            });
 
         } catch (error) {
             console.error('总结失败:', error);
