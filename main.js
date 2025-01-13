@@ -375,8 +375,11 @@ async function createWindow() {
   // 添加保存图片的IPC处理器
   ipcMain.handle('save-summary-image', async (event, { dataUrl, defaultPath }) => {
     try {
+      // 确保文件名中的空格不会被转换为%20
+      const decodedPath = decodeURIComponent(defaultPath);
+      
       const result = await dialog.showSaveDialog({
-        defaultPath: defaultPath,
+        defaultPath: decodedPath,
         filters: [
           { name: 'PNG Image', extensions: ['png'] }
         ],

@@ -1988,7 +1988,7 @@ function showSummaryContextMenu(event) {
 
                     // 获取当前音频文件名
                     const audioPlayer = document.getElementById('audio-player');
-                    const audioFileName = audioPlayer.src.split('/').pop().split('.')[0];
+                    const audioFileName = decodeURIComponent(audioPlayer.src.split('/').pop().split('.')[0]);
                     const defaultPath = `${audioFileName}_summary.png`;
 
                     // 将canvas转换为图片并保存
