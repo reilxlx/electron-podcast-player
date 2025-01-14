@@ -1948,42 +1948,97 @@ function showSummaryContextMenu(event) {
                         position: fixed;
                         top: -9999px;
                         left: -9999px;
-                        width: 600px;
+                        width: 1200px;
                         background: #FFFFFF;
-                        border-radius: 12px;
-                        padding: 32px;
+                        border-radius: 16px;
+                        padding: 40px;
                         font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
                         box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+                        box-sizing: border-box;
                     `;
 
                     // 添加标题和图标
                     captureDiv.innerHTML = `
-                        <div style="display: flex; align-items: center; margin-bottom: 24px;">
-                            <svg width="32" height="32" viewBox="0 0 32 32" style="margin-right: 16px;">
-                                <circle cx="16" cy="16" r="16" fill="#007AFF" opacity="0.1"/>
-                                <path d="M10 16l4 4l8-8" stroke="#007AFF" stroke-width="2" fill="none"/>
+                        <div style="
+                            display: flex; 
+                            align-items: center; 
+                            margin-bottom: 32px; 
+                            padding-bottom: 24px; 
+                            border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+                            padding-left: 40px;
+                            padding-right: 40px;
+                        ">
+                            <svg width="40" height="40" viewBox="0 0 40 40" style="margin-right: 20px;">
+                                <circle cx="20" cy="20" r="20" fill="#007AFF" opacity="0.1"/>
+                                <path d="M13 20l5 5l10-10" stroke="#007AFF" stroke-width="2.5" fill="none"/>
                             </svg>
                             <div style="flex: 1;">
-                                <div style="font-size: 18px; font-weight: 600; color: #1D1D1F; margin-bottom: 8px;">内容总结</div>
-                                <div style="font-size: 14px; color: #86868B;">由 SiliconCloud AI 生成</div>
+                                <div style="font-size: 24px; font-weight: 600; color: #1D1D1F; margin-bottom: 8px;">内容总结</div>
+                                <div style="font-size: 15px; color: #86868B;">由 SiliconCloud AI 生成</div>
                             </div>
                         </div>
-                        <div style="font-size: 15px; line-height: 1.6; color: #1D1D1F; white-space: pre-wrap;">
-                            ${document.querySelector('.macos-alert-text').textContent}
+                        <div style="
+                            font-size: 16px; 
+                            line-height: 2; 
+                            color: #1D1D1F; 
+                            white-space: pre-wrap;
+                            letter-spacing: 0.5px;
+                            padding: 0 40px;
+                            max-width: 1120px;
+                            box-sizing: border-box;
+                        ">
+                            ${document.querySelector('.macos-alert-text').textContent.split('\n\n').map(paragraph => 
+                                `<p style="
+                                    margin: 0 0 20px 0; 
+                                    text-align: justify; 
+                                    text-indent: 2em;
+                                    word-break: break-word;
+                                    overflow-wrap: break-word;
+                                    max-width: 100%;
+                                ">${paragraph.trim()}</p>`
+                            ).join('')}
+                        </div>
+                        <div style="
+                            margin-top: 32px;
+                            padding-top: 24px;
+                            border-top: 1px solid rgba(0, 0, 0, 0.1);
+                            font-size: 13px;
+                            color: #86868B;
+                            text-align: right;
+                            padding-right: 40px;
+                            padding-left: 40px;
+                        ">
+                            生成时间：${new Date().toLocaleString('zh-CN', { 
+                                year: 'numeric', 
+                                month: '2-digit', 
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            })}
                         </div>
                     `;
 
                     document.body.appendChild(captureDiv);
 
-                    // 等待一下确保DOM完全渲染
-                    await new Promise(resolve => setTimeout(resolve, 100));
+                    // 等待一下确保DOM完全渲染和字体加载
+                    await new Promise(resolve => setTimeout(resolve, 500));
 
-                    // 使用html2canvas进行截图
+                    // 使用html2canvas进行截图，提高分辨率
                     const canvas = await html2canvas(captureDiv, {
                         backgroundColor: '#FFFFFF',
-                        scale: 2, // 使用2倍缩放以获得更清晰的图像
+                        scale: 3, // 提高到3倍分辨率
                         useCORS: true,
-                        logging: false
+                        logging: false,
+                        allowTaint: true,
+                        letterRendering: true,
+                        width: 1200,
+                        height: captureDiv.offsetHeight,
+                        onclone: (clonedDoc) => {
+                            const clonedElement = clonedDoc.querySelector('div');
+                            clonedElement.style.transform = 'none';
+                            clonedElement.style.webkitFontSmoothing = 'antialiased';
+                            clonedElement.style.textRendering = 'optimizeLegibility';
+                        }
                     });
 
                     // 获取当前音频文件名
